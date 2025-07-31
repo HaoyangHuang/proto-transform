@@ -1,0 +1,11 @@
+syntax = "proto3";
+package com.kodypay.grpc.common;
+option java_package = "com.kodypay.grpc.common";
+option java_multiple_files = true;
+option java_outer_classname = "KpTokenErrorReasonProto";
+
+enum TokenPaymentErrorReason {
+  TOKEN_PAYMENT_FAILED = 0;
+  TOKEN_PAYMENT_DECLINED = 1;
+  TOKEN_PAYMENT_CANCELLED = 2;
+}

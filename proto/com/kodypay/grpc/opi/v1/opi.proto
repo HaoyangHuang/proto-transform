@@ -1,0 +1,41 @@
+syntax = "proto3";
+package com.kodypay.grpc.opi.v1;
+import "options/team.proto";
+
+service StoreMappingService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc AddOrUpdateMapping(AddOrUpdateMappingRequest) returns (StoreMappingResponse);
+  rpc GetMapping(GetMappingRequest) returns (StoreMappingResponse);
+}
+
+message StoreMapping {
+  string store_id = 1;
+  string site_id = 2; // The equivalent of a storeId in Oracle
+  optional string transaction_currency_iso4217_numeric_code = 3;
+  optional IndustryCode industry_code = 4;
+  repeated TerminalMapping terminal_mappings = 5;
+}
+
+message TerminalMapping {
+  string terminal_id = 1;
+  string workstation_number = 2;  // Oracle Hospitality Point-of-Sale (POS) systems workstation number.
+}
+
+enum IndustryCode {
+  UNKNOWN = 0;
+  FOOD_AND_BEVERAGE = 1;
+  RETAIL = 2;
+}
+
+message AddOrUpdateMappingRequest {
+  StoreMapping mapping = 1;
+}
+
+message StoreMappingResponse {
+  StoreMapping mapping = 1;
+}
+
+message GetMappingRequest {
+  string store_id = 1;
+}

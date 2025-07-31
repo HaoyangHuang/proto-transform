@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.terminals.v1;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/loyalty/offers/v1/offers.proto";
+import "options/team.proto";
+option java_multiple_files = true;
+option java_outer_classname = "LoyaltyInsightProto";
+option java_package = "com.kodypay.grpc.terminals.v1";
+
+service KpLoyaltyInsightService {
+  option (options.team) = SOFTWARE_SERVICES;
+
+  rpc CheckDiscountOffer(DiscountOfferRequest) returns (DiscountOfferResponse) {option deprecated = true;};
+  rpc StorePhoneNumberforShopper(StorePhoneNumberforShopperRequest) returns (StorePhoneNumberforShopperResponse) {option deprecated = true;};
+}
+
+message DiscountOfferRequest {
+  string payment_account_reference = 1;
+  string card_alias = 2;
+  string store_id = 3;
+  string psp_reference = 4;
+}
+message DiscountOfferResponse {
+  bool has_active_offer = 1; // If false there are no offer to display or apply
+  bool can_apply_discount = 2; // if true show buttons to user to apply offer or not, then send offerId to metadata
+  optional OfferDetails offer_details = 3;
+  string shopper_identifier_id = 4;
+}
+
+message StorePhoneNumberforShopperRequest{
+  string shopper_identifier_id = 1;
+  PhoneNumber phone_number = 2;
+}
+message StorePhoneNumberforShopperResponse{}
+
+message OfferDetails {
+  string offer_id = 1;
+  DiscountType type = 2;
+  google.protobuf.Timestamp valid_until = 3;
+  optional common.Money minimum_spend = 4;
+  string campaign_id = 5;
+  string shopper_identifier_id = 6;
+  optional loyalty.offers.v1.CampaignRedemptionDetails redemption_details = 7;
+  bool is_created = 8; // If true, the offer was created
+}
+
+message DiscountType {
+  oneof discount_type {
+    int32 discount_percentage = 1; // 0-100
+    common.Money discount_fixed = 2;
+  }
+}
+message PhoneNumber {
+  string country_code = 1;
+  string phone_number = 2;
+}

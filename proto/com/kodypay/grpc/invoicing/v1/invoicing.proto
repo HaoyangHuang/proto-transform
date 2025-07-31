@@ -1,0 +1,687 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.invoicing.v1;
+
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/settlement/claim/v1/settlementclaim.proto";
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "InvoicingProto";
+option java_package = "com.kodypay.grpc.invoicing.v1";
+
+service InvoicingService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc CreateStatement(CreateStatementRequest) returns (CreateStatementResponse);
+  rpc SaveStoreDetails(SaveStoreDetailsRequest) returns (StoreDetails);
+  rpc GetStoreDetails(GetStoreDetailsRequest) returns (StoreDetails);
+  rpc GetStatements(GetStatementsRequest) returns (GetStatementsResponse);
+  rpc UpdateStatement(UpdateStatementRequest) returns (UpdateStatementResponse);
+  rpc GetStoresRequiringStatements(GetStoresRequiringStatementsRequest) returns (GetStoresRequiringStatementsResponse);
+  rpc CreateSettlementStatement(CreateSettlementStatementRequest) returns (CreateSettlementStatementResponse);
+  rpc CreateRevenueStatement(CreateRevenueStatementRequest) returns (CreateRevenueStatementResponse);
+
+  rpc CreateInvoice(CreateInvoiceRequest) returns (Invoice);
+  rpc CancelInvoice(CancelInvoiceRequest) returns (Invoice);
+  rpc GetInvoices(GetInvoicesRequest) returns (GetInvoicesResponse);
+  rpc UpdateInvoice(UpdateInvoiceRequest) returns (UpdateInvoiceResponse);
+
+  rpc GetRevenueStatement(GetRevenueStatementsRequest) returns (GetRevenueStatementsResponse);
+}
+
+service CardsInvoiceDataService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetMccEarnings(GetMccEarningsRequest) returns (GetMccEarningsResponse);
+  rpc GetFeesBreakdown(GetFeesBreakdownRequest) returns (GetFeesBreakdownResponse);
+  rpc GetAddonsTransactionData(GetAddonsTransactionDataRequest) returns (GetAddonsTransactionDataResponse);
+
+  rpc GenerateInvoiceLineItemData(GenerateInvoiceLineItemDataRequest) returns (GenerateInvoiceLineItemDataResponse);
+}
+
+message GetMccEarningsRequest {
+  string store_id = 1;
+  google.protobuf.Timestamp settlements_from = 2;
+  google.protobuf.Timestamp settlements_to = 3;
+  string cut_rate = 4; // ie 0.33
+}
+
+message GetMccEarningsResponse {
+  string mcc_cut = 1;
+}
+
+message CreateSettlementStatementRequest {
+  Metadata metadata = 1;
+  Summary summary = 2;
+  Sales sales = 3;
+  optional CarriedPayments payments_not_settled = 4;
+  optional CarriedPayments previous_payments_settled = 5;
+  Fees fees = 6 [deprecated = true]; // Unused
+  optional string statement_id = 7; // serves as an idempotent key
+  string currency_code = 8; // ISO 4217 (eg. GBP)
+  string timezone_id = 9; // IANA timezone (eg. Europe/London)
+  string country_code = 10; // ISO 3166-1 Alpha-2 (eg. GB)
+  string language = 11; // ISO 639-1 (eg. en)
+  repeated Adjustment adjustments = 12;
+
+  message Metadata {
+    string store_id = 1;
+    google.protobuf.Timestamp settlement_date = 2;
+    google.protobuf.Timestamp sales_period_from = 3;
+    google.protobuf.Timestamp sales_period_to = 4;
+    string category = 5;
+  }
+
+  message Summary {
+    string sales_total = 1 [deprecated = true]; // Unused
+    string payments_not_settled = 2;
+    string previous_payments_settled = 3;
+    string paid_transaction_fees = 4 [deprecated = true]; // Unused
+    string total_settled = 5;
+    string total_processed = 6 [deprecated = true]; // Unused
+    string total_sales = 7;
+    string transaction_fees = 8;
+    string unpaid_transaction_fees = 9;
+    string total_ccc_fees = 10;
+    string total_ccc_fees_merchant_cut = 11;
+    string total_adjustments = 12;
+  }
+
+  message Sales {
+    optional google.protobuf.Timestamp first_transaction_date = 1;
+    optional google.protobuf.Timestamp last_transaction_date = 2;
+    repeated Channel channels = 3;
+    Total total = 4;
+  }
+
+  message CarriedPayments {
+    repeated Payment payments = 1;
+    repeated Channel channels = 2;
+    Total total = 3;
+
+    message Payment {
+      google.protobuf.Timestamp event_date = 1;
+      string channel_name = 2;
+      Type type = 3;
+      string card_description = 4;
+      string reference = 5;
+      string amount = 6;
+
+      enum Type {
+        SALE = 0;
+        REFUND = 1;
+      }
+    }
+  }
+
+  message Fees {
+    string paid = 1;
+    string unpaid = 2;
+    string total = 3;
+  }
+
+  message Channel {
+    string name = 1;
+    repeated RateGroup rate_groups = 2;
+    Total total = 3;
+
+    message RateGroup {
+      string name = 1;
+      Total total = 2;
+      string percentage = 3;
+      string fixed = 4;
+      CalculationMethod calculation_method = 5;
+    }
+  }
+
+  enum CalculationMethod {
+    Blended = 0;
+    Icpp = 1;
+  }
+
+  message Total {
+    int32 number_of_transactions = 1;
+    string sales = 2;
+    string refunds = 3;
+    string total = 4;
+    string paid_fees = 5 [deprecated = true]; // Unused
+    string unpaid_fees = 6 [deprecated = true]; // Unused
+    string processed = 7 [deprecated = true]; // Unused
+    string fees = 8; // unpaid + paid
+    string ccc_fees = 9;
+    string ccc_fees_merchant_cut = 10;
+  }
+
+  message Adjustment {
+    string amount = 1;
+    string description = 2;
+  }
+}
+
+message CreateSettlementStatementResponse {
+  // Empty
+}
+
+message CreateRevenueStatementRequest {
+  string store_id = 1;
+  string store_name = 2;
+  Breakdown full_breakdown = 3;
+  repeated Breakdown daily_breakdowns = 4;
+  string currency_code = 5; // ISO 4217 (eg. GBP)
+  string timezone_id = 6; // IANA timezone (eg. Europe/London)
+  string country_code = 7; // ISO 3166-1 Alpha-2 (eg. GB)
+  string language = 8; // ISO 639-1 (eg. en)
+  optional string revenue_statement_id = 9; // serves as an idempotent key
+
+  message Breakdown {
+    google.protobuf.Timestamp sales_period_from = 1;
+    google.protobuf.Timestamp sales_period_to = 2;
+    PaymentsTable all_payments = 3;
+    repeated PaymentsTable by_terminal = 4;
+  }
+
+  message PaymentsTable {
+    string title = 1;
+    repeated SourceGroup source_groups = 2;
+    RateGroup total = 3;
+
+    message SourceGroup {
+      string name = 1;
+      repeated Channel channels = 2;
+
+      message Channel {
+        string name = 1;
+        repeated RateGroup rate_groups = 2;
+      }
+    }
+
+    message RateGroup {
+      string name = 1;
+      string sales = 2;
+      string tips = 3;
+      string refunds = 4;
+      string total = 5;
+      string offers = 6;
+    }
+  }
+}
+
+message CreateRevenueStatementResponse {
+  string revenue_statement_id = 1;
+}
+
+message GetInvoicesRequest {
+  message Filter {
+    optional string store_id = 1;
+  }
+
+  message Pagination {
+    int32 first = 1;
+    int32 offset = 2;
+  }
+
+  Filter filter = 1;
+  Pagination pagination = 2;
+}
+
+message GetInvoicesResponse {
+  message Pagination {
+    int32 first = 1;
+    int32 offset = 2;
+    int32 total = 3;
+  }
+
+  repeated Invoice invoices = 1;
+  Pagination pagination = 2;
+}
+
+message CreateInvoiceRequest {
+  string store_id = 1;
+  repeated Adjustment adjustments = 2;
+  string note = 3;
+  string internal_note = 4;
+  string balance_account_id = 5;
+  reserved 6;
+  bool merchant_visible = 7;
+  optional RevenueStatement adyen_revenue_statement = 9;
+  optional RevenueStatement checkout_revenue_statement = 10;
+  string currency_code = 11; // ISO 4217 (eg. GBP)
+  string timezone_id = 12; // IANA timezone (eg. Europe/London)
+  string country_code = 13; // ISO 3166-1 Alpha-2 (eg. GB)
+  string language = 14; // ISO 639-1 (eg. en)
+  optional FeesBreakdown fees_breakdown = 15 [deprecated = true]; // Replaced by the repeated field
+  repeated FeesBreakdown fees_breakdowns = 16;
+  optional AddonsBreakdown addons_breakdown = 17;
+  string invoice_id = 18;
+}
+
+message AddonsBreakdown {
+  repeated AddonCategory addon_categories = 1;
+  string total = 2; // represents total of total field
+  string paid_total = 3;
+  string to_pay_total = 4;
+
+  message AddonCategory {
+    string name = 1;
+    repeated AddonType addon_types = 2;
+
+    message AddonType {
+      string price_per_unit = 1;
+      string unit = 2;
+      string volume = 3;
+      string total = 4;
+      string name = 5;
+      string paid = 6;
+      string to_pay = 7;
+    }
+  }
+}
+
+message FeesBreakdown {
+  google.protobuf.Timestamp sales_period_from = 1;
+  google.protobuf.Timestamp sales_period_to = 2;
+  repeated Channel channels = 3;
+
+  message Channel {
+    string name = 1;
+    repeated IcppFeeRow icpp_rows = 2;
+    repeated BlendedFeeRow blended_rows = 3;
+    TotalFeeRow total = 4;
+
+    message IcppFeeRow {
+      string name = 1;
+      string percentage = 2;
+      string fixed = 3;
+      int32 number_of_transactions = 4 [deprecated = true]; // no longer required;
+      string gross_sales = 5 [deprecated = true]; // replaced by volume fields
+      string net_sales = 6 [deprecated = true]; // replaced by volume fields
+      string ic = 7;
+      string scheme = 8;
+      string markup = 9 [deprecated = true]; // replaced by fee fields
+      string auth = 10 [deprecated = true]; // replaced by fee fields
+      string fees_total = 11;
+      string payment_volume = 12;
+      string refund_volume = 13;
+      string payment_fees = 14;
+      string refund_fees = 15;
+    }
+
+    message BlendedFeeRow {
+      string name = 1;
+      string percentage = 2;
+      string fixed = 3;
+      int32 number_of_transactions = 4 [deprecated = true]; // no longer required
+      string gross_sales = 5 [deprecated = true]; // replaced by volume fields
+      string net_sales = 6 [deprecated = true]; // replaced by volume fields
+      string markup = 7 [deprecated = true]; // replaced by fee fields
+      string auth = 8 [deprecated = true]; // replaced by fee fields
+      string fees_total = 9;
+      string payment_volume = 10;
+      string refund_volume = 11;
+      string payment_fees = 12;
+      string refund_fees = 13;
+    }
+
+    message TotalFeeRow {
+      int32 number_of_transactions = 1 [deprecated = true]; // no longer required;
+      string gross_sales = 2 [deprecated = true]; // replaced by volume fields
+      string net_sales = 3 [deprecated = true]; // replaced by volume fields
+      string fees_total = 4;
+      string payment_volume = 5;
+      string refund_volume = 6;
+      string payment_fees = 7;
+      string refund_fees = 8;
+    }
+  }
+}
+
+message RevenueStatement {
+  google.protobuf.Timestamp sales_period_from = 1;
+  google.protobuf.Timestamp sales_period_to = 2;
+  repeated Settlement settlements = 3;
+  Settlement total_settlement = 4;
+
+  message Settlement {
+    google.protobuf.Timestamp settled_date = 1;
+    google.protobuf.Timestamp sales_period_from = 2;
+    google.protobuf.Timestamp sales_period_to = 3;
+    string total_sales = 4;
+    string not_settled = 5;
+    string extra_settled = 6;
+    string fees = 7;
+    string unpaid_fees = 8;
+    string settled = 9;
+    string adjustments_amount = 10;
+  }
+}
+
+message GetRevenueStatementsRequest {
+  string store_id = 1;
+  google.protobuf.Timestamp settlements_from = 2;
+  google.protobuf.Timestamp settlements_to = 3;
+}
+
+message GetRevenueStatementsResponse {
+  optional RevenueStatement adyen_revenue_statement = 1;
+  optional RevenueStatement checkout_revenue_statement = 2;
+}
+
+message CancelInvoiceRequest {
+  string invoice_id = 1;
+}
+
+message GetFeesBreakdownRequest {
+  string store_id = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+
+message GetFeesBreakdownResponse {
+  FeesBreakdown fees_breakdown = 1 [deprecated = true]; // Replaced by the repeated field
+  repeated FeesBreakdown fees_breakdowns = 2;
+}
+
+message GetAddonsTransactionDataRequest {
+  string store_id = 1;
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+}
+
+message GetAddonsTransactionDataResponse {
+  repeated AddonsTransactionData transaction_data = 1;
+}
+
+message AddonsTransactionData {
+  string total_volume = 1;
+  string total_fee = 2;
+
+  oneof rate {
+    PercentageRate no_cvv_amex = 3;
+    PercentageRate no_cvv_other = 4;
+    PercentageRate three_ds_amex = 5;
+    PercentageRate three_ds_other = 6;
+  }
+
+  message PercentageRate {
+    string percentage = 1;
+  }
+}
+
+message Adjustment {
+  AdjustmentType type = 1;
+  int64 amount = 2; // in minor units
+  string description = 3;
+  string reference = 4;
+  string tax_percentage = 5;
+  int64 paid_amount = 6;
+}
+
+message Invoice {
+  string invoice_id = 1;
+  string store_id = 2;
+  repeated Adjustment adjustments = 3;
+  string note = 4;
+  string internal_note = 5;
+  int64 netTotal = 6; // this is the sum of each line net amount
+  string balance_account_id = 7;
+  string store_name = 8;
+  google.protobuf.Timestamp date_created = 9;
+  TransferStatus transfer_status = 10;
+  bool merchant_visible = 11;
+  optional int64 invoiceTotal = 12; //this is the sum of each line gross amount less amount paid (if any)
+  optional settlement.claim.v1.ClaimStatus claim_status = 13; //this returns the claim status if available
+}
+
+enum TransferStatus {
+  NotSent = 0;
+  Pending = 1;
+  Sent = 2;
+  Failed = 3;
+}
+
+enum AdjustmentType {
+  MonthlyFee = 0 [deprecated = true]; // use MonthlySaasFee instead
+  Rebate = 1;
+  DebitNote = 2;
+  CreditNote = 3;
+  TransactionFee = 4 [deprecated = true]; // use MonthlyTransactionFee instead
+  RefundFee = 5;
+  ChargebackFee = 6;
+  Chargeback = 7;
+  ChargebackReversed = 8;
+  MonthlySaasFee = 9;
+  MonthlyTransactionFee = 10;
+  AddonFee = 11;
+}
+
+message CreateStatementRequest {
+  string store_id = 1;
+  google.protobuf.Timestamp statement_date = 2;
+  google.protobuf.Timestamp start_date = 3;
+  google.protobuf.Timestamp end_date = 4;
+  string fees = 5;
+  string total_earnings = 6;
+  string json = 7 [deprecated = true]; // Contains the full invoice breakdown
+  SettlementSummary settlement_summary = 8;
+  repeated RevenueSummary revenue_summaries = 9;
+  repeated DailySummary daily_summaries = 10;
+  ClosingTime closing_time = 11;
+
+  message ClosingTime {
+    int32 hours = 1;
+    int32 minutes = 2;
+  }
+
+  message SettlementSummary {
+    repeated SettlementDetails settlement_details = 1;
+    string total = 2;
+  }
+
+  message SettlementDetails {
+    string title = 1;
+    string amount = 2;
+  }
+
+  message SalesAggregation {
+    string title = 1;
+    int64 transaction_count = 2;
+    string sales = 3;
+    string refunds = 4;
+    string fees = 5;
+    string discounts = 6;
+    string total = 7;
+  }
+
+  message RateCategory {
+    string title = 1;
+    repeated SalesAggregation sales_aggregations = 2;
+  }
+
+  message PaymentDetails {
+    string psp_reference = 1;
+    string event_date = 2;
+    string channel = 3;
+    string card_details = 4;
+    string amount = 5;
+  }
+
+  message StatementSummary {
+    google.protobuf.Timestamp first_settlement_date = 1;
+    google.protobuf.Timestamp last_settlement_date = 2;
+    repeated SalesAggregation sales_aggregations = 3;
+    SalesAggregation sales_not_settled = 4;
+    SalesAggregation previous_sales_settled = 5;
+    SalesAggregation settlement_aggregation = 6;
+    repeated PaymentDetails payments_not_settled = 7;
+    repeated PaymentDetails previous_payments_settled = 8;
+    string deferred_fees = 9;
+  }
+
+  message RevenueSummary {
+    string title = 1;
+    repeated RateCategory rate_categories = 2;
+    SalesAggregation sales_total = 3;
+  }
+
+  message DailySummary {
+    string title = 1;
+    google.protobuf.Timestamp start_date = 2;
+    google.protobuf.Timestamp end_date = 3;
+    google.protobuf.Timestamp settlement_date = 4;
+    repeated RateCategory rate_categories = 5;
+    SalesAggregation sales_total = 6;
+    SalesAggregation sales_not_settled = 7;
+    SalesAggregation settlement_aggregation = 8;
+    repeated PaymentDetails payments_not_settled = 9;
+    string deferred_fees = 10;
+  }
+}
+
+message CreateStatementResponse {
+  // This is empty for now, but we could add fields here later if needed
+}
+
+message SaveStoreDetailsRequest {
+  string store_id = 1;
+  string company_name = 2;
+  string store_name = 3;
+  string address_line_one = 4;
+  string address_line_two = 5;
+  string city = 6;
+  string country = 7;
+  string post_code = 8;
+  string vat_number = 9;
+  reserved 10;
+  repeated string email_addresses = 11;
+}
+
+message GetStoreDetailsRequest {
+  string store_id = 1;
+}
+
+message StoreDetails {
+  string store_id = 1;
+  string company_name = 2;
+  string store_name = 3;
+  string address_line_one = 4;
+  string address_line_two = 5;
+  string city = 6;
+  string country = 7;
+  string post_code = 8;
+  string vat_number = 9;
+  reserved 10;
+  repeated string email_addresses = 11;
+}
+
+message GetStatementsRequest {
+  message Filter {
+    message MonthAndYear {
+      int32 month = 1;
+      int32 year = 2;
+    }
+
+    optional string store_id = 1;
+    optional MonthAndYear month_and_year = 2;
+    optional bool merchant_visible = 3;
+  }
+
+  message Pagination {
+    int32 first = 1;
+    int32 offset = 2;
+  }
+
+  Filter filter = 1;
+  Pagination pagination = 2;
+}
+
+message GetStatementsResponse {
+  message Statement {
+    string statement_id = 1;
+    string store_id = 2;
+    string store_name = 3;
+    google.protobuf.Timestamp statement_date = 4;
+    google.protobuf.Timestamp start_date = 5;
+    google.protobuf.Timestamp end_date = 6;
+    string gross_volume = 7;
+    string total_payout = 8;
+    StatementType type = 9;
+    bool merchant_visible = 10;
+  }
+
+  enum StatementType {
+    Old = 0;
+    Settlement = 1;
+    Revenue = 2;
+    DailySettlement = 3;
+  }
+
+  message Pagination {
+    int32 first = 1;
+    int32 offset = 2;
+    int32 total = 3;
+  }
+
+  repeated Statement statements = 1;
+  Pagination pagination = 2;
+}
+
+message UpdateStatementRequest {
+  string statement_id = 1;
+
+  optional bool merchant_visible = 2;
+  optional string json = 3; // Contains the full statement breakdown
+}
+
+message UpdateStatementResponse {
+  // Empty
+}
+
+message GetStoresRequiringStatementsRequest {
+  int32 month = 1;
+  int32 year = 2;
+  int32 limit = 3; // How many to return
+}
+
+message GetStoresRequiringStatementsResponse {
+  repeated string store_ids = 1;
+}
+
+message UpdateInvoiceRequest {
+  string invoice_id = 1;
+  optional bool merchant_visible = 2;
+}
+
+message UpdateInvoiceResponse {
+  // Empty
+}
+
+message GenerateInvoiceLineItemDataRequest {
+  string store_id = 1;
+  int32 invoice_year = 2;
+  int32 invoice_month = 3;
+}
+
+message GenerateInvoiceLineItemDataResponse {
+  repeated LineItemData line_item_data = 1;
+}
+
+message LineItemData {
+  LineItemType line_item_type = 1;
+  common.Money amount = 2;
+  common.Money amount_paid = 3;
+  string description = 4;
+  optional string metadata = 5;
+
+  enum LineItemType {
+    MonthlySaaSFee = 0;
+    MonthlyTransactionFee = 1;
+    AddonFee = 3;
+    ChargebackFee = 4;
+    RefundFee = 5;
+    CreditNote = 6;
+  }
+
+}
+

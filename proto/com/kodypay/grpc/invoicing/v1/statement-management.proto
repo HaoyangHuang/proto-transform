@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.invoicing.v1;
+
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/time.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StatementManagementProto";
+option java_package = "com.kodypay.grpc.invoicing.v1";
+
+service StatementManagementService {
+  option (options.team) = INTERNAL_SERVICES;
+  // Legacy (will be removed soon)
+  rpc CreatePaymentStatement(CreatePaymentStatementRequest) returns (CreatePaymentStatementResponse);
+  rpc RequestSettlementStatement(RequestSettlementStatementRequest) returns (RequestSettlementStatementResponse);
+  rpc GenerateRevenueStatement(GenerateRevenueStatementRequest) returns (GenerateRevenueStatementResponse);
+}
+
+message RequestSettlementStatementRequest {
+  string store_id = 1;
+  common.Date revenue_date = 2;
+  optional ClosingTime closing_time = 3;
+  Platform platform = 4;
+
+  enum Platform {
+    Adyen = 0;
+    Checkout = 1;
+  }
+
+  message ClosingTime {
+    common.Time time = 1;
+    string zone_id = 2;
+  }
+}
+
+message RequestSettlementStatementResponse {}
+
+message CreatePaymentStatementRequest {
+  string store_id = 1;
+  google.protobuf.Timestamp start_date = 2;
+  google.protobuf.Timestamp end_date = 3;
+}
+
+message CreatePaymentStatementResponse {
+  // This is empty for now, but we could add fields here later if needed
+}
+
+message GenerateRevenueStatementRequest {
+  string store_id = 1;
+  google.protobuf.Timestamp salesPeriodFrom = 2;
+  google.protobuf.Timestamp salesPeriodTo = 3;
+}
+
+message GenerateRevenueStatementResponse {
+  // This is empty for now, but we could add fields here later if needed
+}

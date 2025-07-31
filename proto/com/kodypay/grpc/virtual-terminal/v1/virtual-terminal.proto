@@ -1,0 +1,81 @@
+syntax = "proto3";
+package com.kodypay.grpc.virtualterminal.v1;
+import "com/kodypay/grpc/common/money.proto";
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/payment-mode.proto";
+
+service VirtualTerminalService {
+  rpc CreatePayment(CreatePaymentRequest) returns (CreatePaymentResponse);
+  rpc GetPaymentDetails(GetPaymentDetailsRequest) returns (GetPaymentDetailsResponse);
+  rpc SendReceipt(SendReceiptRequest) returns (SendReceiptResponse);
+}
+
+message CreatePaymentRequest {
+  string store_id = 1;
+  common.Money amount = 2;
+  EncryptedCardDetails encrypted_card_details = 3;
+  common.PaymentMode payment_mode = 4;
+  string description = 5;
+  optional CustomerDetails customer_details = 6;
+  optional string internal_notes = 7;
+}
+
+message CreatePaymentResponse {
+  string payment_id = 1;
+  PaymentStatus status = 2;
+  optional string error_description = 3;
+}
+
+enum PaymentStatus {
+  PENDING = 0;
+  SUCCESS = 1;
+  FAILED = 2;
+  CANCELLED = 3;
+  EXPIRED = 4;
+  DECLINED = 5;
+  REFUNDED = 6;
+}
+
+message EncryptedCardDetails {
+  string name_on_card = 1;
+  string card_number = 2;
+  string expiry_date_month = 3;
+  string expiry_date_year = 4;
+  optional string cvv = 5;
+}
+
+message CustomerDetails {
+  optional string address = 1;
+  optional string phone_number = 2;
+  optional string email = 3;
+  bool store_for_next_time = 4;
+}
+
+message GetPaymentDetailsRequest {
+  string payment_id = 1;
+  string store_id = 2;
+}
+
+message GetPaymentDetailsResponse {
+  string payment_id = 1;
+  common.Money amount = 2;
+  string card_last_four = 3;
+  string card_brand = 4;
+  google.protobuf.Timestamp date_created = 5;
+  optional string customer_email_address = 6; // To prefill email input when sending receipt to customer
+  PaymentStatus status = 7;
+  string description = 8;
+  string name_on_card = 9;
+}
+
+message SendReceiptRequest {
+  string payment_id = 1;
+  string email_address = 2;
+  string store_id = 3;
+}
+
+message SendReceiptResponse {
+  bool success = 1;
+  optional string error_description = 2;
+  string email_address = 3;
+}

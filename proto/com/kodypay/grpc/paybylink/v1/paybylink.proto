@@ -1,0 +1,317 @@
+syntax = "proto3";
+package com.kodypay.grpc.paybylink.v1;
+
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/pay-by-link.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "PayByLinkProto";
+option java_package = "com.kodypay.grpc.paybylink.v1";
+
+service KpPayByLinkService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc getPayByLinkTransactionDetails(GetPayByLinkTransactionDetailsRequest) returns (GetPayByLinkTransactionDetailsResponse);
+  rpc GetLinkPayments(LinkPaymentsRequest) returns (LinkPaymentsResponse) {}
+  rpc FreezeLinkPayment(FreezeLinkPaymentRequest) returns (FreezeLinkPaymentResponse) {}
+}
+
+service PayByLinkService {
+  // All calls to this service as a terminal require the headers:
+  //    POI_ID (the poi id of the caller)
+  //    TOKEN (the auth token)
+  // Web based requests need to specify the store_id in each request and pass up a JWT
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse) {}
+  rpc SuspendLink(SuspendLinkRequest) returns (SuspendLinkResponse) {}
+  rpc GetLinks(GetLinksRequest) returns (GetLinksResponse) {}
+  rpc GetPaginatedLinkDetails(GetPaginatedLinkDetailsRequest) returns (GetPaginatedLinkDetailsResponse) {}
+  rpc GetLinkDetails(GetLinkDetailsRequest) returns (GetLinkDetailsResponse) {}
+  rpc ShareLink(ShareLinkRequest) returns (ShareLinkResponse) {}
+  rpc SetMerchantNotification(SetMerchantNotificationRequest) returns (SetMerchantNotificationResponse) {}
+  // non-terminal can request limited information about a link
+  // secured by APP_ID and TOKEN in the header
+  rpc GetLinkInformation(GetLinkInformationRequest) returns (GetLinkInformationResponse) {}
+  rpc GetStoreDefaults(GetStoreDefaultsRequest) returns (GetStoreDefaultsResponse);
+  rpc FreezeUnFreezeLink(FreezeUnFreezeLinkRequest) returns (FreezeUnFreezeLinkResponse) {}
+}
+
+message GetPayByLinkTransactionDetailsRequest {
+  string psp_reference = 1;
+}
+message GetPayByLinkTransactionDetailsResponse {
+  string pay_by_link_id = 1;
+  string name = 2;
+  string phone = 3;
+  string email = 4;
+  Address billing_address = 5;
+  Address shipping_address = 6;
+  string description = 7;
+
+  message Address {
+    string house_number_or_name = 1;
+    string street = 2;
+    string city = 3;
+    string postcode = 4;
+  }
+}
+
+message CreateLinkRequest {
+  common.LinkType type = 1;
+  string amount = 2; // BigDecimal
+  google.protobuf.Timestamp expiry = 3;
+  string description = 4;
+  repeated LinkCustomerPrompt prompts = 5;
+  repeated MerchantNotificationRecipient merchant_notification_recipients = 6;
+  optional string store_id = 7;
+  repeated common.AcceptedPaymentMethodGroup accepted_payment_method_groups = 8;
+  optional LinkDefaultsUpdate defaults = 9;
+  optional CustomerLinkShareRequest customer_link_share = 10;
+  optional string internal_description = 11;
+}
+message LinkDefaultsUpdate {
+  bool save_customer_prompts = 1;
+  bool save_notification_recipients = 2;
+}
+message CreateLinkResponse {
+  string link_id = 1;
+  GetLinkDetailsResponse linkDetails = 2;
+}
+
+message SuspendLinkRequest {
+  string link_id = 1;
+  optional string store_id = 2;
+}
+message SuspendLinkResponse {
+}
+
+message GetLinksRequest {
+  optional string store_id = 1;
+}
+message GetLinksResponse {
+  repeated LinkSummary links = 1;
+}
+
+message GetPaginatedLinkDetailsRequest {
+  string store_id = 1 [deprecated = true]; // see store_ids
+  int32 first = 2;
+  int32 offset = 3;
+  optional google.protobuf.Timestamp pagedBefore = 4;
+  optional string freeTextContains = 5;
+  repeated LinkStatus statusIn = 6;
+  optional google.protobuf.Timestamp createdFrom = 7;
+  optional google.protobuf.Timestamp createdTo = 8;
+  optional string amount_from = 9; //BigDecimal
+  optional string amount_to = 10; //BigDecimal
+  repeated string store_ids = 11;
+}
+message GetPaginatedLinkDetailsResponse {
+  repeated GetLinkDetailsResponse linkDetails = 1;
+  Pagination pagination = 2;
+  LinkDefaults defaults = 3 [deprecated = true]; //been put into linkDetails
+}
+
+message GetStoreDefaultsRequest {
+  string store_id = 1;
+}
+message GetStoreDefaultsResponse {
+  LinkDefaults defaults = 1;
+}
+message LinkDefaults {
+  repeated MerchantNotificationRecipient merchant_notification_recipients = 1;
+  repeated LinkCustomerPrompt customer_prompts = 2;
+}
+
+message GetLinkDetailsRequest {
+  string link_id = 1;
+  optional string store_id = 2;
+}
+message GetLinkDetailsResponse {
+  LinkSummary summary = 1;
+  common.LinkType type = 2;
+  google.protobuf.Timestamp expiry = 3;
+  string link_url = 4;
+  repeated LinkTransactionSummary transactions = 5;
+  repeated MerchantNotificationRecipient merchant_notification_recipients = 6;
+  repeated LinkCustomerPrompt prompts = 7;
+  repeated CustomerLinkShare customer_link_shares = 8;
+  repeated common.AcceptedPaymentMethodGroup accepted_payment_method_groups = 9;
+  optional google.protobuf.Timestamp freeze_updated_date =  10;
+  optional LinkDefaults defaults = 11;
+  optional string store_id = 12;
+  optional string store_name = 13;
+}
+
+message ShareLinkRequest {
+  string link_id = 1;
+  CustomerLinkShareRequest customer_link_share = 2;
+  optional string store_id = 3;
+}
+message ShareLinkResponse {
+}
+
+message SetMerchantNotificationRequest {
+  string link_id = 1;
+  repeated MerchantNotificationRecipient merchant_notification_recipients = 2;
+  optional string store_id = 3;
+}
+message SetMerchantNotificationResponse {
+}
+
+message MerchantNotificationRecipient {
+  oneof value {
+    string email = 1;
+    string sms = 2;
+  }
+}
+
+enum LinkCustomerPrompt {
+  BILLING_ADDRESS = 0;
+  DELIVERY_ADDRESS = 1;
+  EMAIL = 2;
+  NAME = 3;
+  PHONE = 4;
+}
+
+message LinkSummary {
+  string link_id = 1;
+  string description = 2;
+  common.Money amount = 3;
+  google.protobuf.Timestamp created = 4;
+  LinkStatus status = 5;
+  int32 payments = 6;
+  string created_by = 7;
+  optional string internal_description = 8;
+}
+enum LinkStatus {
+  ACTIVE = 0;
+  EXPIRED = 1;
+  COMPLETED = 2;
+  SUSPENDED = 3;
+  FREEZE = 4;
+}
+
+message LinkTransactionSummary {
+  TransactionSummary transaction_summary = 1;
+  PayByLinkAdditionalData pay_by_link_additional_data = 2;
+}
+
+message CustomerLinkShareRequest {
+  optional CustomerLinkShareSmsRequest data_sms = 1;
+  optional CustomerLinkShareEmailRequest data_email = 2;
+  message CustomerLinkShareSmsRequest {
+    repeated string phone_number = 1;
+    string content = 2;
+  }
+  message CustomerLinkShareEmailRequest {
+    repeated string email_address = 1;
+    string subject = 2;
+    string body = 3;
+  }
+  optional string store_id = 3;
+}
+
+message CustomerLinkShare {
+  google.protobuf.Timestamp shared_at = 1;
+  oneof ShareContent {
+    CustomerLinkShareSms data_sms = 2;
+    CustomerLinkShareEmail data_email = 3;
+  }
+  message CustomerLinkShareSms {
+    string phone_number = 1;
+    string content = 2;
+  }
+  message CustomerLinkShareEmail {
+    string email_address = 1;
+    string subject = 2;
+    string body = 3;
+  }
+}
+
+message GetLinkInformationRequest{
+  string link_id = 1;
+}
+message GetLinkInformationResponse{
+  string store_id = 1;
+}
+
+// TODO: separate transactions from PbL
+message TransactionSummary {
+  string transaction_id = 1;
+  TransactionStatus status = 2;
+  google.protobuf.Timestamp date_created = 3;
+  string last_four_digits = 4;
+  string totalAmount = 5; // BigDecimal
+  string refundAmount = 6; // BigDecimal
+  ShopperInteraction shopper_interaction = 7;
+  string tipAmount = 8; // BigDecimal
+  string payment_method = 9;
+  reserved "external_transaction_id"; reserved 10;
+  optional string payment_transaction_id = 11;
+  optional string pre_auth_id = 12;
+}
+enum ShopperInteraction {
+  UNKNOWN = 0;
+  ECOMMERCE = 1;
+  CONTAUTH = 2;
+  POS = 3;
+  MOTO = 4;
+  PAY_BY_LINK = 5;
+}
+enum TransactionStatus {
+  SUCCESS = 0;
+  FAILURE = 1;
+  CANCELLED = 2;
+  REFUNDED = 3;
+  PREAUTHORISED = 4;
+  RELEASED = 5;
+  PART_REFUNDED = 6;
+}
+message PayByLinkAdditionalData {
+  string pay_by_link_id = 1;
+  string name = 2;
+  string phone = 3;
+  string email = 4;
+  Address billing_address = 5;
+  Address shipping_address = 6;
+  message Address {
+    string house_number_or_name = 1;
+    string street = 2;
+    string city = 3;
+    string postcode = 4;
+  }
+}
+message Pagination {
+  int32 first = 1;
+  int32 offset = 2;
+  int32 total = 3;
+  google.protobuf.Timestamp pagedBefore = 4;
+}
+message FreezeUnFreezeLinkRequest {
+  string link_id = 1;
+  optional string store_id = 2;
+  LinkStatus status = 3;
+}
+
+message FreezeUnFreezeLinkResponse {
+}
+
+message LinkPaymentsRequest {
+  string link_id = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+  string store_id = 4;
+}
+
+message LinkPaymentsResponse {
+  int32 failed_payment_count = 1;
+}
+
+message FreezeLinkPaymentRequest {
+  string link_id = 1;
+  optional string store_id = 2;
+}
+
+message FreezeLinkPaymentResponse {
+}

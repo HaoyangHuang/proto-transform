@@ -1,0 +1,198 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.acquiringfees;
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/time.proto";
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/acquiring-fees/fees.proto";
+import "options/team.proto";
+
+option java_package = "com.kodypay.grpc.acquiringfees";
+option java_multiple_files = true;
+option java_outer_classname = "KpV3FeeAdmin";
+
+service V3FeeAdminService {
+  option (options.team) = INTERNAL_SERVICES;
+  // Global
+  rpc GetPricingModels (GetPricingModelsRequest) returns (GetPricingModelsResponse);
+  rpc GetPricingModel (GetPricingModelRequest) returns (GetPricingModelResponse);
+  rpc UpsertPricingModel (UpsertPricingModelRequest) returns (UpsertPricingModelResponse);
+  rpc DeletePricingModel (DeletePricingModelRequest) returns (DeletePricingModelResponse);
+
+  // Store Specific
+  rpc GetStoreDetails (GetStoreDetailsRequest) returns (GetStoreDetailsResponse);
+  rpc GetStorePricingModel (GetStorePricingModelRequest) returns (GetStorePricingModelResponse);
+  rpc GetStoreRateSnapshots (GetStoreRateSnapshotsRequest) returns (GetStoreRateSnapshotsResponse);
+  rpc GetStoreRateSnapshot (GetStoreRateSnapshotRequest) returns (GetStoreRateSnapshotResponse);
+  rpc UpsertDraftStoreRates (UpsertDraftStoreRatesRequest) returns (UpsertDraftStoreRatesResponse);
+  rpc PublishDraftStoreRates (PublishDraftStoreRatesRequest) returns (PublishDraftStoreRatesResponse);
+  rpc GetStoreRefundFeeConfig (GetStoreRefundFeeConfigRequest) returns (GetStoreRefundFeeConfigResponse);
+  rpc UpsertStoreRefundFeeConfig (UpsertStoreRefundFeeConfigRequest) returns (UpsertStoreRefundFeeConfigResponse);
+
+  rpc MigrateStoreToGenesis (MigrateStoreToGenesisRequest) returns (MigrateStoreToGenesisResponse);
+}
+
+message GetPricingModelsRequest {}
+
+message GetPricingModelsResponse {
+  repeated PricingModel.Metadata pricing_models = 1;
+}
+
+message GetPricingModelRequest {
+  string pricing_model_id = 1;
+}
+
+message GetPricingModelResponse {
+  PricingModel pricing_model = 1;
+  repeated string associated_stores = 2;
+}
+
+message UpsertPricingModelRequest {
+  PricingModel pricing_model = 1;
+}
+
+message UpsertPricingModelResponse {}
+
+message DeletePricingModelRequest {
+  string pricing_model_id = 1;
+}
+
+message DeletePricingModelResponse {}
+
+message GetStoreDetailsRequest {
+  string store_id = 1;
+}
+
+message GetStoreDetailsResponse {
+  optional string active_pricing_model_id = 1;
+}
+
+message GetStorePricingModelRequest {
+  string store_id = 1;
+  optional string pricing_model_id = 2; // Defaults to active pricing model if not provided
+}
+
+message GetStorePricingModelResponse {
+  PricingModel pricing_model = 1;
+  repeated StoreRate live_store_rates = 2;
+  repeated StoreRate draft_store_rates = 3;
+}
+
+message GetStoreRateSnapshotsRequest {
+  string store_id = 1;
+}
+
+message GetStoreRateSnapshotsResponse {
+  repeated StoreRateSnapshot store_rate_snapshots = 1;
+
+  message StoreRateSnapshot {
+    string id = 1;
+    google.protobuf.Timestamp published_at = 2;
+    string published_by = 3;
+    string pricing_model_id = 4;
+    string pricing_model_name = 5;
+  }
+}
+
+message GetStoreRateSnapshotRequest {
+  string store_rate_snapshot_id = 1;
+}
+
+message GetStoreRateSnapshotResponse {
+  string id = 1;
+  google.protobuf.Timestamp published_at = 2;
+  string published_by = 3;
+  PricingModel pricing_model = 4;
+  repeated StoreRate store_rates = 5;
+}
+
+message UpsertDraftStoreRatesRequest {
+  string store_id = 1;
+  string pricing_model_id = 2;
+  repeated StoreRate store_rates = 3;
+}
+
+message UpsertDraftStoreRatesResponse {}
+
+message PublishDraftStoreRatesRequest {
+  string store_id = 1;
+  string pricing_model_id = 2;
+  string published_by = 3;
+  optional google.protobuf.Timestamp effective_at = 4; // When the rates should be switched over
+}
+
+message PublishDraftStoreRatesResponse {}
+
+message MigrateStoreToGenesisRequest {
+  string store_id = 1;
+}
+
+message MigrateStoreToGenesisResponse {}
+
+message PricingModel {
+  Metadata metadata = 1;
+  repeated RateGroup rate_groups = 2;
+
+  message Metadata {
+    optional string id = 1; // Provide if updating an existing pricing model, do not if creating new one
+    string name = 2;
+    bool ecommerce_and_moto_combined = 3;
+    optional google.protobuf.Timestamp created_at = 4;
+    string created_by = 5;
+    bool is_draft = 6;
+  }
+
+  message RateGroup {
+    optional string id = 1; // Provide if updating an existing rate group, do not if creating new one
+    string name = 2;
+    CalculationMethod calculation_method = 3;
+    repeated Matcher matchers = 4;
+    int32 display_order = 5;
+
+    message Matcher {
+      optional string id = 1; // Provide if updating an existing matcher, do not if creating new one
+      optional string brand = 2;
+      optional string variant = 3;
+      bool domestic = 4;
+      optional Acquirer acquirer = 5;
+    }
+  }
+}
+
+message StoreRate {
+  optional string id = 1; // Provide if updating an existing store rate, do not if creating new one
+  string rate_group_id = 2;
+  string card_present_rate_percentage = 3;
+  string card_present_rate_fixed = 4;
+  string ecommerce_rate_percentage = 5;
+  string ecommerce_rate_fixed = 6;
+  string moto_rate_percentage = 7;
+  string moto_rate_fixed = 8;
+}
+
+message GetStoreRefundFeeConfigRequest {
+  string store_id = 1;
+}
+
+message GetStoreRefundFeeConfigResponse {
+  optional StoreRefundFeeConfig store_refund_fee_config = 1;
+}
+
+message UpsertStoreRefundFeeConfigRequest {
+  string store_id = 1;
+  StoreRefundFeeConfig store_refund_fee_config = 2;
+}
+
+message UpsertStoreRefundFeeConfigResponse {}
+
+message StoreRefundFeeConfig {
+  RefundFeeStrategy refund_fee_strategy = 1;
+  optional string refund_fee_percentage = 2;
+  optional string refund_fee_fixed = 3;
+
+  enum RefundFeeStrategy {
+    NO_FEE = 0;
+    CUSTOM_FEE = 1;
+    PRICING_MODEL_FEE = 2;
+  }
+}

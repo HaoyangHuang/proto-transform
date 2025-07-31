@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.banking.referencehistory.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ReferenceHistoryProto";
+option java_package = "com.kodypay.grpc.banking.referencehistory.v1";
+
+// not implemented right now, part of payee chunk 2. delete me if chunk 2 never happened.
+service ReferenceHistoryService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc GetReferences(GetReferencesRequest) returns (GetReferencesResponse);
+  rpc AddReference(AddReferenceRequest) returns (AddReferenceResponse);
+}
+
+message GetReferencesRequest{
+  string store_id = 1;
+  string payee_id = 2;
+}
+message GetReferencesResponse{
+  repeated string references = 1;
+}
+
+message AddReferenceRequest{
+  string store_id = 1;
+  string payee_id = 2;
+  string reference = 3;
+}
+message AddReferenceResponse{
+}

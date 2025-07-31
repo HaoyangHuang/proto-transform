@@ -1,0 +1,13 @@
+syntax = "proto3";
+package com.kodypay.grpc.common;
+option java_package = "com.kodypay.grpc.common";
+option java_multiple_files = true;
+option java_outer_classname = "KpCommonShopperInteractionProto";
+
+enum ShopperInteraction {
+  SI_UNKNOWN = 0;
+  SI_POS = 1;
+  SI_MOTO = 2;
+  SI_DEPOSIT = 3;
+  SI_TOKEN = 4;
+}

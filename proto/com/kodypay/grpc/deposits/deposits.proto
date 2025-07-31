@@ -1,0 +1,258 @@
+syntax = "proto3";
+package com.kodypay.grpc.deposits;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+import "com/kodypay/grpc/transactions/v1/card-scheme.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "DepositsProto";
+option java_package = "com.kodypay.grpc.deposits";
+
+service KpDepositsService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc TerminalCreateDeposit(TerminalCreateDepositRequest) returns (CreateDepositResponse);
+  rpc CreatePBLDeposit(CreatePBLDepositRequest) returns (CreatePBLDepositResponse);
+  rpc AuthoriseDeposit(AuthoriseDepositRequest) returns (AuthoriseDepositResponse);
+  rpc AuthorisePBLDeposit(AuthorisePBLDepositRequest) returns (AuthorisePBLDepositResponse);
+  rpc TerminalSearchDeposit(TerminalSearchDepositRequest) returns (SearchDepositResponse);
+  rpc CaptureDeposit(CaptureDepositRequest) returns (CaptureDepositResponse); //allows to capture an amount. Can be less than the authorised. Capturing more will be rejected
+  rpc ReleaseDeposit(ReleaseDepositRequest) returns (ReleaseDepositResponse); //releases the full amount authorised
+  rpc AdjustDeposit(AdjustDepositRequest) returns (AdjustDepositResponse);
+  rpc GetDeposit(GetDepositRequest) returns (GetDepositResponse);
+  rpc GetPaginatedDeposits(GetPaginatedDepositsRequest) returns (GetPaginatedDepositsResponse);
+}
+
+message CreatePBLDepositRequest {
+  common.Money amount = 1;
+  string store_id = 2;
+  string pay_by_link_id = 3;
+}
+message CreatePBLDepositResponse {
+  Deposit deposit = 1;
+}
+//used from terminal, gets store info from POI id
+message TerminalCreateDepositRequest {
+  common.Money amount = 1;
+}
+
+message CreateDepositResponse {
+  Deposit deposit = 1;
+}
+
+message MccData {
+  common.Money issuer_amount = 1; // with mcc fees
+  common.Money store_amount = 2;
+  string mcc_store_fees = 3; // ex 3.00
+  string mcc_fee_percentage = 4;
+  string fx_rate = 5;
+  common.Money original_issuer_amount = 6;
+  string fx_rate_with_markup = 7;
+}
+
+message AuthoriseDepositRequest {
+  string deposit_id = 1;
+  string psp_reference = 2;
+  oneof result {
+    AuthorisationData authorisation = 3;
+    AuthorisationFailure failure = 4;
+  }
+  optional MccData mcc_data = 5;
+}
+
+message AuthorisePBLDepositRequest{
+  string deposit_id = 1;
+  string pay_by_link_id = 2;
+  string store_id = 3;
+  string psp_reference = 4;
+  oneof result {
+    AuthorisationData authorisation = 5;
+    AuthorisationFailure failure = 6;
+  }
+  optional MccData mcc_data = 7;
+}
+
+message GetDepositRequest {
+  string deposit_id = 1;
+}
+
+message GetPaginatedDepositsRequest {
+  string store_id = 1;
+  int32 first = 2;
+  int32 offset = 3;
+  optional google.protobuf.Timestamp pagedBefore = 4;
+  optional string referenceContains = 5;
+  optional google.protobuf.Timestamp created_from = 6;
+  optional google.protobuf.Timestamp created_to = 7;
+  optional string amount_from = 8; //BigDecimal
+  optional string amount_to = 9; //BigDecimal
+  repeated DepositStatus status_in = 10;
+  repeated transactions.v1.CardScheme card_scheme_in = 11;
+}
+
+message GetDepositResponse {
+  Deposit deposit = 1;
+}
+
+message GetPaginatedDepositsResponse {
+  repeated Deposit deposits = 1;
+  common.Pagination pagination = 2;
+}
+
+message AuthorisationData {
+  string card_brand = 1;
+  string card_brand_variant = 2;
+  optional string adjustment_data = 3;
+  optional TokenData token_data = 4;
+  optional string card_last_four_digits = 5;
+  optional bool allow_adjustments = 6;
+}
+message AuthorisationFailure {
+  FailureReason reason = 1;
+  optional string card_last_four_digits = 5;
+}
+enum FailureReason {
+  AUTH_CANCELLED = 0;
+  AUTH_FAILED = 1;
+  AUTH_DECLINED = 2;
+}
+message TokenData {
+  string token = 1;
+  string shopper_reference = 2;
+}
+message AuthoriseDepositResponse {
+  Deposit deposit = 1;
+}
+
+message AuthorisePBLDepositResponse {
+  Deposit deposit = 1;
+}
+
+message TerminalSearchDepositRequest {
+  string reference = 1;
+}
+message SearchDepositResponse {
+  repeated Deposit deposits = 1;
+}
+
+message CaptureDepositRequest {
+  string deposit_id = 1;
+  common.Money amount = 2;
+  bool capture_in_batch = 3;
+  optional MccData mcc_data = 4;
+}
+message CaptureDepositResponse {
+  Deposit deposit = 1;
+}
+
+message ReleaseDepositRequest {
+  string deposit_id = 1;
+}
+message ReleaseDepositResponse {
+  Deposit deposit = 1;
+}
+
+message AdjustDepositRequest {
+  string deposit_id = 1;
+  common.Money amount = 2;
+}
+message AdjustDepositResponse {
+  Deposit deposit = 1;
+}
+
+message Deposit {
+  string reference = 1;
+  string deposit_id = 2;
+  string store_id = 3;
+  google.protobuf.Timestamp date_time = 4;
+  common.Money pre_auth_amount = 5;
+  optional common.Money captured_amount = 6;
+  optional common.Money released_amount = 7;
+  optional common.Money adjustment_pending_amount = 19;
+  optional string pre_auth_psp_reference = 8;
+  optional string release_psp_reference = 9;
+  DepositStatus status = 10;
+  repeated Capture captures = 11;
+  optional google.protobuf.Timestamp expiry_date = 12;
+  optional google.protobuf.Timestamp pre_auth_date = 13;
+  optional google.protobuf.Timestamp release_date = 14;
+  google.protobuf.Timestamp last_update_date = 15;
+  optional string card_last_four_digits = 16;
+  optional string pay_by_link_id = 17;
+  optional common.Money pending_adjustment_amount = 18;
+  optional bool allow_adjustments = 20;
+  optional common.Money refunded_amount = 21;
+  repeated Refund refunds = 22;
+  optional bool capture_will_refund_remainder = 23;
+  optional MccData mcc_data = 24;
+  transactions.v1.CardScheme card_scheme = 25;
+  string payment_method = 26;
+  bool is_no_cvv = 27;
+  bool is_three_ds = 28;
+  bool is_fx_adjusted = 29;
+  repeated Adjustment adjustments = 30; // Adjustments ordered by date_time desc
+  optional google.protobuf.Timestamp adjustment_date = 31;
+}
+
+enum DepositStatus {
+  RESERVED = 0;
+  PENDING_COLLECTION = 1;
+  COLLECTED = 2;
+  COLLECTION_FAILED = 3;
+  RELEASED = 4;
+  EXPIRED = 5;
+  DECLINED = 6;
+  FAILED = 7;
+  CANCELLED = 8;
+  NEW = 9;
+  PENDING_RESERVE = 10;
+  PENDING_RELEASE = 11;
+  PENDING_ADJUSTMENT = 12;
+  ADJUSTMENT_FAILED = 13;
+}
+
+message Capture {
+  string capture_id = 1;
+  string psp_reference = 2;
+  google.protobuf.Timestamp date_time = 3;
+  common.Money amount = 4;
+  CaptureStatus status = 5;
+  optional string error = 6;
+  optional string payment_transaction_id = 7;
+}
+enum CaptureStatus {
+  PENDING = 0;
+  SUCCESS = 1;
+  ERROR = 2;
+}
+
+message Refund {
+  optional string psp_reference = 1;
+  google.protobuf.Timestamp date_time = 2;
+  common.Money amount = 3;
+  RefundStatus status = 4;
+  optional string error = 5;
+}
+enum RefundStatus {
+  REFUND_SCHEDULED = 0;
+  REFUND_PENDING = 1;
+  REFUND_SUCCESS = 2;
+  REFUND_ERROR = 3;
+}
+
+message Adjustment {
+  string adjustment_id = 1;
+  optional string adjustment_reference = 2;
+  AdjustmentStatus status = 3;
+  common.Money amount = 4;
+  common.Money pre_adjustment_amount = 5;
+  google.protobuf.Timestamp date_time = 6;
+}
+
+enum AdjustmentStatus {
+  ADJUSTMENT_PENDING = 0;
+  ADJUSTMENT_SUCCESS = 1;
+  ADJUSTMENT_ERROR = 2;
+}

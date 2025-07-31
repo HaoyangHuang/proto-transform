@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.invoicing.automatedinvoice.notification.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AutomatedInvoiceNotificationProto";
+option java_package = "com.kodypay.grpc.invoicing.automatedinvoice.notification.v1";
+
+service AutomatedInvoiceNotificationService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc SendEmail(SendEmailRequest) returns (SendEmailResponse);
+}
+
+message SendEmailRequest {
+  string store_id = 1;
+  string invoice_id = 2;
+}
+
+message SendEmailResponse {}

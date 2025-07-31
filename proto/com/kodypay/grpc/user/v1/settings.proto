@@ -1,0 +1,75 @@
+syntax = "proto3";
+package com.kodypay.grpc.user.v1;
+
+import "com/kodypay/grpc/shared/v1/device.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "UserSettingsProto";
+option java_package = "com.kodypay.grpc.user.v1";
+
+service KpUserSettingsService {
+  option (options.team) = SOFTWARE_SERVICES;
+
+  rpc AddUser(AddUserDetailsRequest) returns (UpdateUserDetailsResponse); //this API will trigger the same flow as in KA (KU email + Cognito registration + DB entities save)
+  rpc GetUserDetails(GetUserDetailsRequest) returns (GetUserDetailsResponse);
+  rpc UpdateUserDetails(UpdateUserDetailsRequest) returns (UpdateUserDetailsResponse);
+  rpc UpdateUserDetailsWithChallenge(UpdateUserDetailsWithChallengeRequest) returns (UpdateUserDetailsWithChallengeResponse);
+  rpc FinalizeUpdateUserDetailsWithChallenge(FinalizeUpdateUserDetailsWithChallengeRequest) returns (UpdateUserDetailsResponse);
+}
+
+message AddUserDetailsRequest {
+  string name = 1;
+  string email = 2;
+  string phone = 3;
+}
+
+message GetUserDetailsRequest {
+  string user_id = 1;
+}
+
+message GetUserDetailsResponse {
+  reserved 2;
+  reserved "lastName";
+  string name = 1;
+  string email = 3;
+  string phone = 4;
+  repeated com.kodypay.grpc.shared.v1.PushDevice push_devices = 5;
+}
+
+message UpdateUserDetailsRequest {
+  reserved 3;
+  reserved "lastName";
+  string user_id = 1;
+  optional string name = 2;
+  optional string email = 4 [deprecated = true]; //use secure API instead
+  optional string phone = 5 [deprecated = true]; //use secure API instead
+}
+
+message UpdateUserDetailsResponse {
+  reserved 2;
+  reserved "lastName";
+  string name = 1;
+  string email = 3;
+  string phone = 4;
+}
+
+message UpdateUserDetailsWithChallengeRequest {
+  string user_id = 1;
+  oneof info {
+    string email = 2;
+    string phone = 3;
+  }
+}
+
+message UpdateUserDetailsWithChallengeResponse {
+  oneof response {
+    string challenge_id = 1;
+    UpdateUserDetailsResponse user_details = 2;
+  }
+}
+
+message FinalizeUpdateUserDetailsWithChallengeRequest {
+  string challenge_id = 1;
+  string challenge = 2;
+}

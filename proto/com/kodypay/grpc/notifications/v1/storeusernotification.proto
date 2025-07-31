@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.storeusernotification.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "storeusernotificationProto";
+option java_package = "com.kodypay.grpc.storeusernotification.v1";
+
+service StoreUserNotificationService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetStoreUserNotifications(GetStoreUserNotificationsRequest) returns (GetStoreUserNotificationsResponse);
+  rpc CreateStoreUserNotification(CreateStoreUserNotificationRequest) returns (CreateStoreUserNotificationResponse);
+  rpc UpdateStoreUserNotification(UpdateStoreUserNotificationRequest) returns (UpdateStoreUserNotificationResponse);
+  rpc DeleteStoreUserNotification(DeleteStoreUserNotificationRequest) returns (DeleteStoreUserNotificationResponse);
+}
+
+message GetStoreUserNotificationsRequest {
+  string store_id = 1;
+}
+
+message GetStoreUserNotificationsResponse {
+  repeated StoreUserNotification storeUserNotifications = 1;
+}
+
+message CreateStoreUserNotificationRequest {
+  string store_id = 1;
+  string email = 2;
+  string name = 3;
+}
+
+message CreateStoreUserNotificationResponse {}
+
+message UpdateStoreUserNotificationRequest {
+  string id = 1;
+  string language = 2;  // ISO 639 alpha-2 (eg. en)
+  bool settlement_payout_email = 3;
+  bool chargeback_email = 4;
+  bool invoice_email = 5;
+}
+
+message UpdateStoreUserNotificationResponse {}
+
+message DeleteStoreUserNotificationRequest {
+  string id = 1;
+}
+
+message DeleteStoreUserNotificationResponse {}
+
+message StoreUserNotification {
+  string id = 1;
+  string store_id = 2;
+  string email = 3;
+  string name = 4;
+  string language = 5;  // ISO 639 alpha-2 (eg. en)
+  bool settlement_payout_email = 6;
+  bool chargeback_email = 7;
+  bool invoice_email = 8;
+}

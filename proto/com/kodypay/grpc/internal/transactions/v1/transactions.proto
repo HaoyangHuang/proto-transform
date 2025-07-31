@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.internal.transactions.v1;
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "InternalTransactionsProto";
+option java_package = "com.kodypay.grpc.internal.transactions.v1";
+
+service KpInternalTransactionsService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetTransactionsForLink(GetTransactionsForLinkRequest) returns (GetTransactionsForLinkResponse);
+  rpc GetTransactionIdForPspRef(GetTransactionIdForPspRefRequest) returns (GetTransactionIdForPspRefResponse);
+}
+
+message GetTransactionsForLinkRequest {
+  string store_id = 1;
+  string payment_link_id = 2;
+}
+
+message GetTransactionsForLinkResponse {
+  repeated LinkTransaction transactions = 1;
+  message LinkTransaction {
+    string internal_transaction_id = 1;
+    string external_payment_reference = 2;
+    optional string external_refund_reference = 3;
+  }
+}
+
+message GetTransactionIdForPspRefRequest {
+    string store_id = 1;
+    string psp_reference = 2;
+}
+
+message GetTransactionIdForPspRefResponse {
+  string payment_transaction_id = 1;
+}

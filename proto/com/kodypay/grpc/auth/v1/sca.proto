@@ -1,0 +1,51 @@
+syntax = "proto3";
+package com.kodypay.grpc.auth.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ScaProto";
+option java_package = "com.kodypay.grpc.auth.v1";
+
+// This is to register a device for bank transfer SCA
+service ScaService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc InitiateRegistration(InitiateRegistrationRequest) returns (InitiateRegistrationResponse);
+  rpc FinaliseRegistration(FinaliseRegistrationRequest) returns (FinaliseRegistrationResponse);
+  rpc GetScaDevices(GetScaDevicesRequest) returns (GetScaDevicesResponse);
+}
+
+// use KU/Mobile auth header to identify user
+message InitiateRegistrationRequest {
+  string sdk_output = 1; // once-per-device SDK output 1
+  string device_name = 2;
+}
+message InitiateRegistrationResponse {
+  bool success = 1;
+  string sdk_input = 2; // from registerDevices response
+  string device_id = 3; // from registerDevices response
+  string internal_device_id = 4;
+}
+message FinaliseRegistrationRequest {
+  string sdk_output = 1; // registration result from SDK output 2
+  string internal_device_id = 2;
+}
+message FinaliseRegistrationResponse {
+  bool success = 1;
+}
+
+message GetScaDevicesRequest {
+  string user_id = 1;
+}
+message GetScaDevicesResponse {
+  repeated ScaDevice devices = 1;
+}
+
+message ScaDevice {
+  string internal_device_id = 1;
+  string external_device_id = 2;
+  string sdk_output_token = 3;
+  string device_name = 4;
+}

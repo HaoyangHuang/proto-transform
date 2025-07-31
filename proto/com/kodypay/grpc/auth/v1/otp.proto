@@ -1,0 +1,71 @@
+syntax = "proto3";
+package com.kodypay.grpc.auth.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AuthProto";
+option java_package = "com.kodypay.grpc.auth.v1";
+
+service KpAuthService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc CheckOtp(CheckOtpRequest) returns (CheckOtpResponse);
+  rpc GenerateOtp(GenerateOtpRequest) returns (GenerateOtpResponse);
+  rpc VerifyOtp(VerifyOtpRequest) returns (VerifyOtpResponse);
+}
+
+message GenerateOtpRequest {
+  string action = 1;
+  repeated Customisation customisations = 2;
+  optional string phoneNumber = 3 [deprecated = true]; //otp should be sent only to number/email in user profile
+  OtpSideChannel side_channel = 4;
+}
+
+enum OtpSideChannel {
+  SMS = 0;
+  EMAIL = 1;
+}
+
+message GenerateOtpResponse {
+  string id = 1;
+  OtpStatus status = 2;
+  google.protobuf.Timestamp verify_by = 3;
+}
+
+message VerifyOtpRequest {
+  string id = 1;
+  string code = 2;
+}
+
+message VerifyOtpResponse {
+  string id = 1;
+  OtpStatus status = 2;
+  google.protobuf.Timestamp expires_at = 3;
+}
+
+message CheckOtpRequest {
+  string id = 1;
+}
+
+message CheckOtpResponse {
+  string id = 1;
+  OtpStatus status = 2;
+  // if status is `OtpRequested` and verify_by timestamp has not passed
+  google.protobuf.Timestamp verify_by = 3;
+  // if status is `OtpValid` and expires_at timestamp has not passed
+  google.protobuf.Timestamp expires_at = 4;
+}
+
+enum OtpStatus {
+  NoPhoneNumber = 0;
+  OtpRequested = 1;
+  OtpInvalid = 2;
+  OtpValid = 3;
+}
+
+message Customisation {
+  string key = 1;
+  string value = 2;
+}

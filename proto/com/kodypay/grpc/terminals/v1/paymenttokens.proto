@@ -1,0 +1,96 @@
+syntax = "proto3";
+package com.kodypay.grpc.terminals.v1;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/payment-mode.proto";
+import "com/kodypay/grpc/common/token-payment-error-reason.proto";
+import "com/kodypay/grpc/terminals/v1/transactions.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "PaymentTokensProto";
+option java_package = "com.kodypay.grpc.terminals.v1";
+
+//authorisation through POI-ID/X-API-KEY
+service KpTerminalTokenService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc CreateCardToken(CreateCardTokenRequest) returns (CreateCardTokenResponse);
+  rpc CreatePaymentWithToken(CreatePaymentWithTokenRequest) returns (CreatePaymentWithTokenResponse);
+  rpc GetPaymentWithToken(GetPaymentWithTokenRequest) returns (CreatePaymentWithTokenResponse);
+  // This will return NOT_FOUND if card no/expiry do not match
+  rpc GetCardTokenDetails(GetCardTokenDetailsRequest) returns (GetCardTokenDetailsResponse);
+}
+
+message CreateCardTokenRequest {
+  string shopper_reference = 1;
+  string country_code = 2;
+  SaleChannel sale_channel = 3;
+  optional string external_token = 4;
+  optional string original_card_last_four = 5;
+  optional string original_card_expiry = 6; // mm/yyyy
+  optional string original_card_brand = 7;
+  optional string original_card_variant = 8;
+}
+message CreateCardTokenResponse {
+  string kody_token = 1;
+  string expiry_date = 2; // mm/yyyy
+}
+
+message CreatePaymentWithTokenRequest {
+  string kody_token = 1;
+  string expiry_date = 2;
+  common.Money amount = 3;
+  optional string batch_id = 4;
+  common.PaymentMode payment_mode = 5;
+  optional string merchant_reference = 6;
+  map<string, string> metadata = 7;
+  string idempotency_key = 8;
+  bool is_mcc_flow = 9;
+  // more fields that could be sent by the terminal (to avoid issues related to a missing token):
+  optional SaleChannel sale_channel = 10; // from token creation
+  optional string external_token = 11; // from token creation
+  optional string external_shopper_reference = 12; // from token creation
+  optional string original_card_last_four = 13; // from token creation
+  optional string original_card_brand = 14; // from token creation
+  optional string original_card_variant = 15; // from token creation
+  optional string original_card_funding_source = 16; // from token creation
+}
+
+message CreatePaymentWithTokenResponse {
+  terminals.v1.Receipt receipt = 3;
+  bool status = 4;
+  optional string error_description = 5;
+  string psp_reference = 6;
+  optional common.TokenPaymentErrorReason error_reason = 7;
+}
+
+message GetPaymentWithTokenRequest {
+  string store_id = 1;
+  string kody_token = 2;
+  common.Money amount = 4;
+  string terminal_id = 5;
+  string idempotency_key = 6; // from original payment attempt
+  google.protobuf.Timestamp payment_datetime = 7; // when the original payment attempt was sent
+}
+
+enum SaleChannel {
+  IPP = 0;
+  ECOM = 1;
+}
+
+message GetCardTokenDetailsRequest {
+  string kody_token = 1;
+  string expiry_date = 2;
+}
+message GetCardTokenDetailsResponse {
+  TokenDetails details = 1;
+}
+message TokenDetails {
+  string kody_token = 1;
+  string expiry_date = 2;
+  optional string original_card_last_four = 3;
+  optional string original_card_brand = 4;
+  optional string original_card_variant = 5;
+  optional google.protobuf.Timestamp kody_token_creation_date = 6;
+}

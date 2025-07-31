@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.loyalty.points.v1;
+
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "LoyaltyPointsProto";
+option java_package = "com.kodypay.grpc.loyalty.points.v1";
+
+service KpLoyaltyPointsService {
+  option (options.team) = SOFTWARE_SERVICES;
+
+  rpc GetAllLoyaltyPoints(GetAllLoyaltyPointsConfigRequest) returns (GetAllLoyaltyPointsConfigResponse);
+  rpc CreateLoyaltyPointsConfig(CreateLoyaltyPointsConfigRequest) returns (CreateLoyaltyPointsConfigResponse);
+  rpc UpdateLoyaltyPointsConfig(UpdateLoyaltyPointsConfigRequest) returns (UpdateLoyaltyPointsConfigResponse);
+  rpc GetQuartilePointsChart(QuartilePointsChartRequest) returns (QuartilePointsChartResponse);
+}
+
+message QuartilePointsChartRequest {
+  string store_id = 1;
+}
+
+message QuartilePointsChartResponse {
+  repeated QuartileData quartile_data = 1;
+  float median_points = 2; // Used to plot the median line on the chart
+}
+
+// The QuartileData message represents data for one quartile.
+message QuartileData {
+  string quartile_name = 1;  // e.g., "Bottom Quartile, Lower Quartile, Upper Quartile, Top Quartile"
+  int32 customer_count = 2; // Number of customers in this quartile
+  optional float avg_points = 3;     // Average points for customers in this quartile
+  optional string avg_transaction_value = 4; // Average transaction value
+  int32 total_transactions = 5;   // Total transactions for this quartile
+  optional float avg_transactions = 6;     // Average transactions per customer
+  common.Currency currency_code = 7;  // To show ATV in correct currency on frontend
+}
+
+message GetAllLoyaltyPointsConfigRequest {}
+
+message GetAllLoyaltyPointsConfigResponse {
+  repeated LoyaltyPointsConfig loyalty_points_config = 1;
+}
+
+message CreateLoyaltyPointsConfigRequest {
+  LoyaltyPointsConfigDetails loyalty_points_config_details = 1;
+}
+
+message CreateLoyaltyPointsConfigResponse {
+  LoyaltyPointsConfig loyalty_points_config = 1;
+}
+
+message UpdateLoyaltyPointsConfigRequest {
+  LoyaltyPointsConfig loyalty_points_config = 1;
+}
+
+message UpdateLoyaltyPointsConfigResponse {
+  LoyaltyPointsConfig loyalty_points_config = 1;
+}
+
+message LoyaltyPointsConfig {
+  string loyalty_points_config_id = 1;
+  LoyaltyPointsConfigDetails loyalty_points_config_details = 2;
+}
+
+message LoyaltyPointsConfigDetails {
+  common.Currency currency_code = 2; // Currency code e.g. GBP
+  string name = 3; // Name of the currency e.g. Sterling Pound
+  int32 units = 4; // Number of units of the currency to convert to points e.g. 10 GBP = 1 points
+}

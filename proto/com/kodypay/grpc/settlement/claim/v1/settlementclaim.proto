@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.settlement.claim.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SettlementClaimProto";
+option java_package = "com.kodypay.grpc.settlement.claim.v1";
+
+service SettlementClaimService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc FindSettlementClaims(FindSettlementClaimsRequest) returns (FindSettlementClaimsResponse);
+  rpc CreateSettlementClaim(CreateSettlementClaimRequest) returns (CreateSettlementClaimResponse);
+  rpc UpdateSettlementClaim(UpdateSettlementClaimRequest) returns (UpdateSettlementClaimResponse);
+  rpc DeleteSettlementClaim(DeleteSettlementClaimRequest) returns (DeleteSettlementClaimResponse);
+}
+
+service PublicSettlementClaimService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc FindPendingSettlementClaims(FindPendingSettlementClaimsRequest) returns (FindPendingSettlementClaimsResponse);
+}
+
+message FindPendingSettlementClaimsRequest {
+  string store_id = 1 [deprecated = true]; // see store_ids
+  google.protobuf.Timestamp date_from = 2;
+  google.protobuf.Timestamp date_to = 3;
+  repeated string store_ids = 4;
+}
+
+message FindPendingSettlementClaimsResponse {
+  repeated PendingSettlementClaim upcoming_settlement_claims = 1;
+  repeated PendingSettlementClaim outstanding_settlement_claims = 2;
+}
+
+message PendingSettlementClaim {
+  string id = 1;
+  string amount = 2;
+  string currency = 3;
+  string description = 4;
+  google.protobuf.Timestamp from_date = 5;
+  ClaimType type = 6;
+  string store_id = 7;
+  string store_name = 8;
+}
+
+message FindSettlementClaimsRequest {
+  string store_id = 1;
+  optional google.protobuf.Timestamp date_from = 2;
+  optional google.protobuf.Timestamp date_to = 3;
+  repeated ClaimStatus claim_statuses = 4;
+  repeated ClaimType claim_types = 5;
+  repeated string invoice_id = 6; //list of invoice_ids (UUID) to search. When setting this and a claim_type <> 'Ínvoice' the search result will be empty
+}
+
+message FindSettlementClaimsResponse {
+  repeated SettlementClaim settlement_claims = 1;
+}
+
+message CreateSettlementClaimRequest {
+  SettlementClaim settlement_claim = 1;
+}
+
+message CreateSettlementClaimResponse {
+  string id = 1;
+}
+
+message UpdateSettlementClaimRequest {
+  string id = 1;
+  optional string amount = 2;
+}
+
+message UpdateSettlementClaimResponse {}
+
+message DeleteSettlementClaimRequest {
+  string id = 1;
+}
+
+message DeleteSettlementClaimResponse {}
+
+message SettlementClaim {
+  string id = 1;
+  string store_id = 2;
+  string amount = 3; // BigDecimal
+  string currency = 4;
+  string description = 5;
+  google.protobuf.Timestamp from_date = 6;
+  string counterparty = 7;
+  ClaimCounterpartyType counterparty_type = 8;
+  ClaimStatus status = 9;
+  int32 priority = 10;
+  ClaimType type = 11;
+  optional string metadata = 12;
+  optional string invoice_id = 13; //UUID, this should be always set only if type == Invoice
+  optional google.protobuf.Timestamp transfer_completed_at = 14;
+  google.protobuf.Timestamp created_date = 15;
+  optional string created_by = 16;
+}
+
+enum ClaimType {
+  MonthlySaasFee = 0;
+  MonthlyTransactionFee = 1;
+  Refund = 2;
+  RefundFee = 3;
+  AddonFee = 4;
+  Chargeback = 5;
+  ChargebackFee = 6;
+  MonthlyAddonFee = 7;
+  LoanRepayment = 8;
+  Invoice = 9;
+}
+
+enum ClaimCounterpartyType {
+  BalanceAccount = 0;
+  TransferInstrument = 1;
+}
+
+enum ClaimStatus {
+  Unprocessed = 0;
+  Pending = 1;
+  Done = 2;
+}

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.settlement.adjustment.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SettlementAdjustmentProto";
+option java_package = "com.kodypay.grpc.settlement.adjustment.v1";
+
+service SettlementAdjustmentService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetSettlementAdjustments(GetSettlementAdjustmentsRequest) returns (GetSettlementAdjustmentsResponse);
+  rpc CreateSettlementAdjustment(CreateSettlementAdjustmentRequest) returns (CreateSettlementAdjustmentResponse);
+  rpc DeleteSettlementAdjustment(DeleteSettlementAdjustmentRequest) returns (DeleteSettlementAdjustmentResponse);
+}
+
+message GetSettlementAdjustmentsRequest {
+  string settlement_id = 1;
+}
+
+message GetSettlementAdjustmentsResponse {
+  repeated SettlementAdjustment settlement_adjustments = 1;
+}
+
+message CreateSettlementAdjustmentRequest {
+  string settlement_id = 1;
+  string amount = 2;
+  string reason = 3;
+}
+
+message CreateSettlementAdjustmentResponse {
+  SettlementAdjustment settlement_adjustment = 1;
+}
+
+message DeleteSettlementAdjustmentRequest {
+  string id = 1;
+}
+
+message DeleteSettlementAdjustmentResponse {}
+
+message SettlementAdjustment {
+  string id = 1;
+  string settlement_id = 2;
+  string amount = 3;
+  string reason = 4;
+  google.protobuf.Timestamp created_at = 5;
+}

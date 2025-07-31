@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.acquiringfees;
+
+import "options/team.proto";
+
+option java_package = "com.kodypay.grpc.acquiringfees";
+option java_multiple_files = true;
+option java_outer_classname = "KpFeeAllowances";
+
+service FeeAllowancesService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetFeeAllowances (GetFeeAllowancesRequest) returns (GetFeeAllowancesResponse);
+  rpc UpsertFeeAllowances (UpsertFeeAllowancesRequest) returns (UpsertFeeAllowancesResponse);
+}
+
+message GetFeeAllowancesRequest {
+  string store_id = 1;
+}
+
+message GetFeeAllowancesResponse {
+  FreeAuthFee free_auth_fee = 1;
+}
+
+message UpsertFeeAllowancesRequest {
+  string store_id = 1;
+  optional FreeAuthFee free_auth_fee = 2;
+}
+
+message UpsertFeeAllowancesResponse {}
+
+message FreeAuthFee {
+  string num_transactions = 1;
+}

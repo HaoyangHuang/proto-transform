@@ -1,0 +1,243 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.paybybank;
+
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "PayByBankProto";
+option java_package = "com.kodypay.grpc.paybybank";
+
+service PayByBankService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc GetPayByBankCode(PayByBankCodeRequest) returns (PayByBankCodeResponse);
+  rpc SubmitPaymentWithInstitutionId(TerminalConsentCreationRequest) returns (TerminalConsentCreationResponse);
+  rpc SubmitPaymentAuth(SubmitPaymentAuthRequest) returns (SubmitPaymentAuthResponse);
+  rpc ProcessPayment(ProcessPaymentRequest) returns (ProcessPaymentResponse);
+  rpc GetPayByBankPayment(PayByBankPaymentResultRequest) returns (TerminalPayByBankPaymentResultResponse);
+  rpc GetInstitutions(InstitutionRequest) returns (InstitutionResponse);
+  rpc SubmitStoreData(StoreDataRequest) returns (StoreResponse);
+  rpc GetStoreData(StoreRequest) returns (StoreResponse);
+  rpc CancelPayment(CancelPaymentRequest) returns (CancelPaymentResponse);
+  rpc GetPaymentDetails(GetPaymentDetailsRequest) returns (GetPaymentDetailsResponse);
+  rpc GetPayByBankPaymentPublic(PayByBankPaymentResultRequest) returns (PayByBankPaymentResultResponse);
+  rpc GetPayByBankPaymentRealTimeStatus(PayByBankPaymentResultRequest) returns (PayByBankPaymentResultResponse);
+  rpc GetPayByBankPaymentRealTimeStatusPublic(PayByBankPaymentResultRequest) returns (PayByBankPaymentResultResponse);
+  // Pay by Link - Pay By Bank Endpoint
+  rpc CreatePaymentAuthorisation(AuthCreationRequest) returns (AuthCreationResponse);
+}
+
+message PayByBankCodeRequest{
+  string terminal_id = 1;
+  string reference = 2;
+  common.Money amount = 3;
+  string store_id = 4;
+}
+
+message PayByBankCodeResponse{
+  string code = 1;
+}
+
+message PayByBankPaymentResultRequest {
+  string pay_by_bank_code = 1;
+}
+
+message PayByBankPaymentResultResponse {
+  optional string payment_id = 1;
+  PaymentResult payment_result = 2;
+  optional string payment_date_time = 3;
+  string reference = 4;
+  optional string payment_status_update_date_time = 5;
+}
+
+message TerminalPayByBankPaymentResultResponse {
+  optional string payment_id = 1;
+  PaymentResult payment_result = 2;
+  optional string payment_date_time = 3;
+  string reference = 4;
+  optional string payment_status_update_date_time = 5;
+  string sort_code = 6;
+  string account_number = 7;
+  string account_name = 8;
+}
+
+message TerminalConsentCreationRequest{
+  string terminal_id = 1;
+  string reference = 2;
+  common.Money amount = 3;
+  string store_id = 4;
+  string institution_id = 5;
+  string institution_country = 6;
+  string terminal_country = 7;
+  bool is_refund_supported = 8;
+  optional string tip_amount = 9;
+}
+
+message TerminalConsentCreationResponse{
+  string pay_by_bank_code = 1;
+  string auth_url = 2;
+  string qr_code_url = 3;
+  ImageResponse qr_code_image = 4;
+  string sort_code = 5;
+  string account_number = 6;
+  string account_name = 7;
+}
+
+message ImageResponse {
+  bytes image_data = 1; // Image data as bytes
+  optional string content_type = 2; // Optional: e.g., "image/png"
+}
+
+message InstitutionRequest{
+}
+
+message InstitutionResponse{
+  repeated Institution institution = 1;
+}
+
+message Institution {
+    string institution_id = 1;
+    string institution_name = 2;
+    string institution_logo = 3;
+    string institution_country = 4;
+}
+
+message SubmitPaymentAuthRequest {
+  string pay_by_bank_code = 1;
+  string institution_id = 2;
+}
+
+message SubmitPaymentAuthResponse {
+  string auth_url = 1;
+  string qr_code_url = 2;
+}
+
+message StoreDataRequest{
+  string store_id = 1;
+  string merchant_reference = 2;
+  string merchant_brand = 3;
+  BalanceAccountData balance_account_data = 4;
+  optional string merchant_mcc = 5;
+  optional string merchant_payment_group = 6;
+  string store_name = 7;
+  Config config = 8;
+}
+
+message BalanceAccountData {
+  string account_name = 1;
+  string sort_code = 2;
+  string account_number = 3;
+}
+
+message Config {
+  string minimum_amount_threshold = 1;  //BigDecimal
+}
+
+message StoreRequest{
+  string store_id = 1;
+}
+
+message StoreResponse{
+  string store_id = 1;
+  string merchant_reference = 2;
+  string merchant_brand = 3;
+  BalanceAccountData balance_account_data = 4;
+  string store_name = 5;
+  Config config = 6;
+}
+
+message CancelPaymentRequest{
+  string pay_by_bank_code = 1;
+  CancelType type = 2;
+}
+
+message CancelPaymentResponse{
+  string status = 1;
+}
+
+enum CancelType {
+  TERMINAL = 0;
+  CALLBACK = 1;
+}
+
+message ProcessPaymentRequest {
+  string pay_by_bank_code = 1;
+  string query_params = 2;
+}
+
+message ProcessPaymentResponse {
+  optional string payment_id = 1;
+  optional string payment_date_time = 2;
+  PaymentResult payment_result = 3;
+}
+
+enum PaymentResult {
+  COMPLETED = 0;
+  FAILED = 1;
+  PROCESSING = 2;
+  RECEIVED = 3;
+  AUTH_INITIATED = 4;
+}
+
+message GetPaymentDetailsRequest {
+  string pay_by_bank_code = 1;
+}
+
+message GetPaymentDetailsResponse {
+  common.Money amount = 1;
+  string institution_id = 2;
+  string reference = 3;
+  string store_name = 4;
+  optional string description = 5;
+  optional string return_url = 7;
+  optional bool auto_redirect = 8;
+  optional bool is_web_flow = 9;
+}
+
+
+message AuthCreationRequest{
+  string payment_source_id = 1;
+  string reference = 2;
+  common.Money amount = 3;
+  string store_id = 4;
+  optional string store_country = 5;
+  string institution_id = 6;
+  string institution_country = 7;
+  optional string description = 8;
+  optional string return_url = 9;
+  optional bool auto_redirect = 10;
+  optional bool is_web_flow = 11;
+  PaymentSource payment_source = 12;
+  optional string shopper_first_name = 13;
+  optional string shopper_last_name = 14;
+  optional string shopper_phone = 15;
+  optional string shopper_email = 16;
+  optional Address billing_address = 17;
+  optional Address shipping_address = 18;
+  message Address {
+    string house_number_or_name = 1;
+    string street = 2;
+    string city = 3;
+    string postcode = 4;
+    string country = 5;
+  }
+}
+
+message AuthCreationResponse{
+  string pay_by_bank_code = 1;
+  string auth_url = 2;
+  string qr_code_url = 3;
+  ImageResponse qr_code_image = 4;
+  string sort_code = 5;
+  string account_number = 6;
+  string account_name = 7;
+}
+
+enum PaymentSource {
+  TERMINAL_PAYMENT = 0;
+  INTEGRATED_PAYMENT = 1;
+  PAYMENT_LINK = 2;
+}

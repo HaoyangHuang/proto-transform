@@ -1,0 +1,48 @@
+{
+  "manifest_version": 3,
+  "name": "Proto Transform Extension",
+  "version": "1.0",
+  "description": "A Chrome extension to transform protobuf data.",
+  "permissions": ["activeTab", "scripting"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "inject.js",
+        "lib/output.js",
+        "proto/**/*.proto",
+        "proto/com/kodypay/grpc/deposits/deposits.proto",
+        "proto/com/kodypay/grpc/common/money.proto",
+        "proto/com/kodypay/grpc/common/pagination.proto",
+        "proto/com/kodypay/grpc/transactions/v1/card-scheme.proto",
+        "proto/options/team.proto",
+        "proto/google/protobuf/timestamp.proto"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "images/icon16.svg",
+      "48": "images/icon48.svg",
+      "128": "images/icon128.svg"
+    }
+  },
+  "icons": {
+    "16": "images/icon16.svg",
+    "48": "images/icon48.svg",
+    "128": "images/icon128.svg"
+  }
+}

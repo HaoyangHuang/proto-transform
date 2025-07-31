@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.audit;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AuditProto";
+option java_package = "com.kodypay.grpc.audit";
+
+service AuditService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetUserInteractions(GetUserInteractionsRequest) returns (GetUserInteractionsResponse);
+}
+
+message GetUserInteractionsRequest {
+  int32 first = 1;
+  int32 offset = 2;
+  optional google.protobuf.Timestamp paged_before = 3;
+  google.protobuf.Timestamp from = 4;
+  google.protobuf.Timestamp to = 5;
+  optional string user_identifier = 6; // email/terminal_id
+  map<string, string> filters = 7; // storeId -> myStoreId, pspReference -> 123456
+}
+
+message GetUserInteractionsResponse {
+  message UserInteraction {
+    string id = 1;
+    google.protobuf.Timestamp timestamp = 2;
+    string type = 3; // eg. PAYMENT_TRANSACTION_REFUNDED
+    UserPlatform user_platform = 4;
+    string user_identifier = 5; // The identifier of the user that triggered the event eg. email/terminal_id
+    string message = 6; // The message of the event formatted for UI eg. email@email.com refunded £100
+    map<string, string> context = 7; // Context formatted for UI eg. "Store ID" -> "myStoreId", "PSP Reference" -> "123456"
+  }
+
+  common.Pagination pagination = 1;
+  repeated UserInteraction user_interactions = 2;
+}
+
+enum UserPlatform {
+  WEB = 0;
+  MOBILE = 1;
+  TERMINAL = 2;
+  API = 3;
+}

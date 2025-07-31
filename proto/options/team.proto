@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package options;
+option java_package = "com.kodypay.grpc.options";
+
+import "google/protobuf/descriptor.proto";
+
+enum Team {
+  BACKEND = 0;
+  FINANCIAL_SERVICES = 1;
+  INTERNAL_SERVICES = 2;
+  PAYMENTS_SERVICES = 3;
+  SOFTWARE_SERVICES = 4;
+}
+
+extend google.protobuf.ServiceOptions {
+  Team team = 50001;
+}

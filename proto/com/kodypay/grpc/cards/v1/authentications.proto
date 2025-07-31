@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.cards.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AuthenticationsProto";
+option java_package = "com.kodypay.grpc.cards.v1";
+
+
+service KpCardAuthenticationService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc Finalize3DSPayment(Finalize3DSPaymentRequest) returns (Finalize3DSPaymentResponse);
+}
+
+message Finalize3DSPaymentRequest {
+  string authentication_id = 1;
+  string token = 2;
+}
+
+message Finalize3DSPaymentResponse {
+  string authentication_id = 1;
+  string status = 2;
+}

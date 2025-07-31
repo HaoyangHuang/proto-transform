@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.acquiringfees;
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/time.proto";
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_package = "com.kodypay.grpc.acquiringfees";
+option java_multiple_files = true;
+option java_outer_classname = "KpFeeAddon";
+
+service AddonService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetAddons (GetAddonsRequest) returns (GetAddonsResponse);
+  rpc UpsertAddons (UpsertAddonsRequest) returns (UpsertAddonsResponse);
+}
+
+message GetAddonsRequest {
+  string store_id = 1;
+}
+
+message GetAddonsResponse {
+  repeated Addon addons = 1;
+}
+
+message UpsertAddonsRequest {
+  string store_id = 1;
+  repeated Addon addons = 2;
+}
+
+message UpsertAddonsResponse {}
+
+message Addon {
+  bool enabled = 1;
+
+  oneof rate {
+    PercentageRate no_cvv_amex = 2;
+    PercentageRate no_cvv_other = 3;
+    PercentageRate three_ds_amex = 4;
+    PercentageRate three_ds_other = 5;
+    FixedRate chargeback = 6;
+  }
+
+  message PercentageRate {
+    string percentage = 1;
+  }
+
+  message FixedRate {
+    string amount = 1;
+  }
+}

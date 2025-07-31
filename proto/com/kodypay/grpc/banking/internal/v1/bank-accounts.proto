@@ -1,0 +1,58 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.banking.internal.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "BankAccountsInternalProto";
+option java_package = "com.kodypay.grpc.banking.internal.v1";
+
+service KpBankAccountsInternalService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc CreateBankAccount(CreateBankAccountRequest) returns (BankAccount);
+  rpc UpdateBankAccount(UpdateBankAccountRequest) returns (BankAccount);
+  rpc GetBankAccounts(GetBankAccountsRequest) returns (GetBankAccountsResponse);
+}
+
+message CreateBankAccountRequest {
+  string balanceAccountId = 1;
+  string displayName = 2;
+}
+
+message BankAccount {
+  string bankAccountId = 1;
+  string platformBankAccountId = 2;
+  string balanceAccountId = 3;
+  string displayName = 4;
+  google.protobuf.Timestamp creationDate = 5;
+  BankAccountStatus status = 6;
+  string bic = 7;
+  map<string, string> local_details = 8;
+  map<string, string> international_details = 9;
+}
+
+message UpdateBankAccountRequest {
+  string bankAccountId = 1;
+  optional string displayName = 2;
+  optional BankAccountStatus status = 3;
+}
+
+message GetBankAccountsRequest {
+  oneof id {
+    string storeId = 1;
+    string balanceAccountId = 2;
+  }
+}
+
+message GetBankAccountsResponse {
+  repeated BankAccount bankAccounts = 1;
+}
+
+enum BankAccountStatus {
+  ACTIVE = 0;
+  SUSPENDED = 1;
+  CLOSED = 2;
+}

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.poc;
+
+service PocService {
+    rpc ErrorCodePoc(ErrorCodePocRequest) returns (ErrorCodePocResponse);
+}
+
+message ErrorCodePocRequest {
+    int32 error_code = 1;
+}
+
+message ErrorCodePocResponse {
+    bool success = 1;
+}

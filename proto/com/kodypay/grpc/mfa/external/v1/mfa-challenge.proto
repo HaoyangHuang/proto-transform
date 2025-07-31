@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.mfa.external.v1;
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "MFAChallengePublicProto";
+option java_package = "com.kodypay.grpc.mfa.external.v1";
+
+service KpMFAChallengeService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc MFAChallengeRequired(MFAChallengeRequiredRequest) returns (MFAChallengeRequiredResponse);
+  rpc MFAChallengeStatusCheck(MFAChallengeStatusCheckRequest) returns (MFAChallengeStatusCheckResponse);
+  rpc MFAChallengeStatusCheckStreamed(MFAChallengeStatusCheckRequest) returns (stream MFAChallengeStatusCheckResponse);
+  rpc ApproveMFAChallenge(ApproveMFAChallengeRequest) returns (ApproveMFAChallengeResponse);
+}
+
+message MFAChallengeRequiredRequest {
+  string context = 1;
+} //Request is getting login info from JWT in Authorization meta
+
+message MFAChallengeRequiredResponse {
+  MFAChallengeRequiredStatus status = 1;
+  string challenge_value = 2; //this is needed because user will have to insert this challenge in the side channel (KodyApp)
+  string context = 3;
+}
+
+enum MFAChallengeRequiredStatus {
+  NOT_REQUIRED = 0;
+  REQUIRED = 1;
+  REQUIRED_NO_DEVICE = 2;
+}
+
+message MFAChallengeStatusCheckRequest {
+  string context = 1;
+  optional string session_id = 2; //here we need an id instead of JWT because KodyApp has a different session than KodyWeb
+} // API will check session JWT if `session_id` is missing
+
+message MFAChallengeStatusCheckResponse {
+    MFAChallengeStatus status = 1;
+    string context = 2;
+}
+
+enum MFAChallengeStatus {
+  GRANTED = 0;
+  PENDING = 1;
+  EXPIRED = 2;
+  DENIED = 3;
+}
+
+message ApproveMFAChallengeRequest {
+  string session_id = 1; //here we need an id instead of JWT because KodyApp has a different session than KodyWeb
+  string context = 2;
+  bool approved = 3;
+  optional string challenge_value = 4;
+}
+
+message ApproveMFAChallengeResponse {
+  ApproveMFAChallengeResult result = 1;
+}
+
+enum ApproveMFAChallengeResult {
+  ACCEPTED = 0;
+  REJECTED = 1;
+}

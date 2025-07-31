@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.internal.onboarding.banking.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "BankProto";
+option java_package = "com.kodypay.grpc.internal.onboarding.banking.v1";
+
+service KpInternalOnboardBankingService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc GetBankingOnboardStatus(GetBankingOnboardStatusRequest) returns (GetBankingOnboardStatusResponse);
+  rpc InitBankingOnboard(InitBankingOnboardRequest) returns (InitBankingOnboardResponse);
+  rpc AddOrganizationTaxInfo(AddOrganizationTaxInfoRequest) returns (AddOrganizationTaxInfoResponse);
+  rpc AddIndividualTaxInfo(AddIndividualTaxInfoRequest) returns (AddIndividualTaxInfoResponse);
+}
+
+message GetBankingOnboardStatusRequest {
+  string storeId = 1;
+  Platform platform = 2;
+}
+
+message GetBankingOnboardStatusResponse {
+  repeated BankingOnboardAction onboardActions = 1;
+  OnboardingStatus status = 2;
+}
+
+message BankingOnboardAction {
+  Action action = 1;
+  map<string, string> additionalInfo = 2;
+  Platform platform = 3;
+}
+
+enum Action {
+  INIT = 0;
+  ADD_ORG_TAX_INFO = 1;
+  UPLOAD_TAX_DOC = 2;
+  ADD_INDIVIDUAL_TAX_INFO = 3;
+  SIGN_DOCS = 4;
+}
+
+enum OnboardingStatus {
+  INACTIVE = 0;
+  PENDING = 1;
+  ACTIVE = 2;
+}
+
+message InitBankingOnboardRequest {
+  string storeId = 1;
+  Platform platform = 2;
+}
+
+message InitBankingOnboardResponse {}
+
+message AddOrganizationTaxInfoRequest {
+  string storeId = 1;
+  string taxCode = 2;
+  TaxCodeType taxCodeType = 3;
+  Platform platform = 4;
+}
+
+enum TaxCodeType {
+  UTR = 0;
+  NINO = 1;
+}
+
+message AddOrganizationTaxInfoResponse {}
+
+message AddIndividualTaxInfoRequest {
+  oneof id {
+    string externalId = 1;
+    string internalId = 2;
+  }
+  TaxCodeType taxCodeType = 3;
+  Platform platform = 4;
+  string taxCode = 5;
+}
+
+message AddIndividualTaxInfoResponse {}
+
+enum Platform {
+  ADYEN = 0;
+}

@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.invoicing.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AutomatedInvoiceProto";
+option java_package = "com.kodypay.grpc.invoicing.v1";
+
+/**
+  Remark: plan to re-locate & separate automated invoice & automated invoice config
+ */
+service AutomatedInvoiceService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetAutomatedInvoiceConfig(GetAutomatedInvoiceConfigRequest) returns (GetAutomatedInvoiceConfigResponse);
+  rpc UpdateAutomatedInvoiceConfig(UpdateAutomatedInvoiceConfigRequest) returns (UpdateAutomatedInvoiceConfigResponse);
+
+  rpc TriggerAutomatedInvoiceCreate(TriggerAutomatedInvoiceCreateRequest) returns (TriggerAutomatedInvoiceCreateResponse);
+}
+
+message GetAutomatedInvoiceConfigRequest {
+  string store_id = 1;
+}
+
+message GetAutomatedInvoiceConfigResponse {
+  AutomatedInvoiceConfig automated_invoice_config = 1;
+}
+
+message UpdateAutomatedInvoiceConfigRequest {
+  AutomatedInvoiceConfig automated_invoice_config = 1;
+}
+
+message UpdateAutomatedInvoiceConfigResponse {}
+
+message AutomatedInvoiceConfig {
+  string store_id = 1;
+  bool enabled = 2;
+  FeesConfig fees_config = 3;
+  MccConfig mcc_config = 4;
+  SettlementStatementConfig settlement_statement_config = 5;
+
+  message FeesConfig {
+    bool is_include_fees_breakdown = 1;
+  }
+
+  message MccConfig {
+    bool is_include_rebate = 1;
+    string rebate_percentage = 2;
+  }
+
+  message SettlementStatementConfig {
+    bool is_include_adyen = 1;
+  }
+}
+
+message TriggerAutomatedInvoiceCreateRequest {
+  string store_id = 1;
+  string invoice_id = 2;
+  int32 year = 3;
+  int32 month = 4;
+}
+
+message TriggerAutomatedInvoiceCreateResponse {}

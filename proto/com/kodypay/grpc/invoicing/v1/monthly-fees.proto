@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.invoicing.v1;
+
+import "com/kodypay/grpc/common/time.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "MonthlyFeesProto";
+option java_package = "com.kodypay.grpc.invoicing.v1";
+
+service MonthlyFeesService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc SaveMonthlyFee(SaveMonthlyFeeRequest) returns (MonthlyFeeResponse);
+  rpc GetMonthlyFee(GetMonthlyFeeRequest) returns (MonthlyFeeResponse);
+}
+
+message SaveMonthlyFeeRequest {
+  string store_id = 1;
+  bool enabled = 2;
+  common.Money amount = 3;
+  string vat_percentage = 4;
+  string cron_expression = 5;
+  common.Money rebate_amount = 6;
+  common.Date rebate_from = 7;
+  common.Date rebate_to = 8;
+}
+
+message GetMonthlyFeeRequest {
+  string store_id = 1;
+}
+
+message MonthlyFeeResponse {
+  string store_id = 1;
+  bool enabled = 2;
+  google.protobuf.Timestamp updated = 3;
+  common.Money amount = 4;
+  string vat_percentage = 5;
+  string cron_expression = 6;
+  common.Money rebate_amount = 7;
+  common.Date rebate_from = 8;
+  common.Date rebate_to = 9;
+}

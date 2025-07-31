@@ -1,0 +1,81 @@
+syntax = "proto3";
+package com.kodypay.grpc.paymentsplit.v1;
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/payment-channel.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "PaymentSplitProto";
+option java_package = "com.kodypay.grpc.paymentsplit.v1";
+
+// TODO some of this is adyen specific and should probably be renamed to reflect that.
+service PaymentSplitService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc GetSplit (GetSplitRequest) returns (GetSplitResponse);
+  rpc GetSplitConfigs (GetSplitConfigsRequest) returns (GetSplitConfigsResponse);
+  rpc GetSplitConfig (GetSplitConfigRequest) returns (SplitConfig);
+  rpc GetSplitAccounts (GetSplitAccountsRequest) returns (GetSplitAccountsResponse);
+}
+// return all split configs for a store
+message GetSplitConfigsRequest {
+  string store_id = 1;
+}
+// return specific split config
+message GetSplitConfigRequest {
+  string store_id = 1;
+  common.PaymentChannel channel = 2;
+  PaymentGatewayType type = 3;
+  string payment_method = 4;
+  common.Currency currency = 5;
+}
+message GetSplitConfigsResponse {
+  repeated SplitConfig split_configs = 1;
+}
+message SplitConfig {
+  common.PaymentChannel channel = 1;
+  PaymentGatewayType type = 2;
+  string payment_method = 3;
+  string fixed_fee = 4;
+  string percentage_fee = 5;
+  common.Currency currency = 6;
+}
+message GetSplitRequest {
+  string store_id = 1;
+  common.Money amount = 2;
+  common.Money tip = 3;
+  common.PaymentChannel channel = 4;
+  PaymentGatewayType type = 5;
+  string payment_method = 6;
+  string country_code = 7; // ISO 3166-1 alpha-2
+}
+message GetSplitResponse {
+  Split kody_part = 1;
+  Split merchant_part = 2;
+  optional Split kody_tip = 3;
+  optional Split merchant_tip = 4;
+  optional Split gateway_fee = 5;
+  string fee_id = 6; // UUID
+  string kody_fees = 7; // BigDecimal
+  string fee_details = 8; // human readable fee, i.e. "1,5%,GBP1.00" or similar
+}
+message Split {
+  common.Money amount = 1;
+  string reference = 2;
+  string account = 3;
+  string description = 4;
+  string type = 5;
+}
+enum PaymentGatewayType {
+  ADYEN = 0;
+  CHECKOUT = 1;
+}
+message GetSplitAccountsRequest {
+  string store_id = 1;
+  common.PaymentChannel channel = 2;
+  PaymentGatewayType type = 3;
+}
+message GetSplitAccountsResponse {
+  string merchant_account = 1;
+  string kody_account = 2;
+}

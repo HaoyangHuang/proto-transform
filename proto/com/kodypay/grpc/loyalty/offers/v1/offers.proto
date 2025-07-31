@@ -1,0 +1,172 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.loyalty.offers.v1;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+import "options/team.proto";
+option java_multiple_files = true;
+option java_outer_classname = "OffersProto";
+option java_package = "com.kodypay.grpc.loyalty.offers.v1";
+
+service OffersService {
+  option (options.team) = SOFTWARE_SERVICES;
+
+  rpc GetOrCreateOffer(GetOrCreateOfferRequest) returns (GetOrCreateOfferResponse) {option deprecated = true;}; // Loyalty V1
+  rpc CheckDiscountOffer(DiscountOfferRequest) returns (DiscountOfferResponse); // copy from KpLoyaltyInsightService, for ease of migration
+  rpc VoidAllActiveOffer(VoidAllActiveOfferRequest) returns (VoidAllActiveOfferResponse);
+  rpc UpdateOfferStatus(UpdateOfferStatusRequest) returns (UpdateOfferStatusResponse);
+  rpc RedeemOffer(RedeemOfferRequest) returns (RedeemOfferResponse);
+  rpc GetActiveOffersStats(GetActiveOffersStatsRequest) returns (GetActiveOffersStatsResponse);
+}
+
+message GetActiveOffersStatsRequest {
+  string store_id = 1;
+  string campaign_id = 2;
+}
+message GetActiveOffersStatsResponse {
+  int32 unredeemed_count = 1;
+}
+
+message UpdateOfferStatusRequest{
+  string store_id = 1;
+  string offer_id = 2;
+  OfferStatus status = 3;
+  optional string psp_reference = 4;
+}
+message UpdateOfferStatusResponse{
+}
+
+message RedeemOfferRequest{
+  string store_id = 1;
+  string offer_id = 2;
+  string psp_reference = 3;
+  common.Money total_spend = 4; // The amount that was spent, after discount
+  common.Money amount_discounted = 5; // The amount that was discounted
+}
+message RedeemOfferResponse{
+}
+
+message GetOrCreateOfferRequest{
+  string store_id = 1;
+  string shopper_identifier_id = 2;
+  string psp_reference = 3;
+}
+message GetOrCreateOfferResponse{
+  bool apply_offer = 1;
+  optional Offer offer = 2; // Offer created/retrieved or there are no offers available
+  optional CampaignRedemptionDetails redemption_details = 3;
+}
+
+message DiscountOfferRequest {
+  string payment_account_reference = 1;
+  string card_alias = 2;
+  string store_id = 3;
+  string psp_reference = 4;
+}
+message DiscountOfferResponse {
+  bool has_active_offer = 1; // If false there are no offer to display or apply
+  bool can_apply_discount = 2; // if true show buttons to user to apply offer or not, then send offerId to metadata
+  optional OfferDetails offer_details = 3;
+  string shopper_identifier_id = 4;
+}
+
+message VoidAllActiveOfferRequest{
+  string store_id = 1;
+  string campaign_id = 2;
+}
+message VoidAllActiveOfferResponse{
+}
+
+message Offer { // deprecated when loyalty has moved from kp-core
+  string offer_id = 1;
+  string campaign_id = 2;
+  string store_id = 3;
+  string shopper_identifier_id = 4; // The shopper identifier that this offer is for
+  string generated_from = 5; // The psp reference that generated this offer
+  OfferStatus status = 6;
+  OfferType offer_type = 7;
+  oneof offer_discount {
+    common.Money discount_fixed = 8;
+    int32 discount_percentage = 9;
+  }
+  google.protobuf.Timestamp valid_until = 10;
+  google.protobuf.Timestamp created_at = 11;
+  optional string applied_to = 12; // The psp reference that this offer was applied to
+  optional google.protobuf.Timestamp appliedAt = 13;
+  optional common.Money minimum_spend = 14;
+}
+message OfferDetails {
+  reserved 6;
+  string offer_id = 1;
+  DiscountType type = 2;
+  google.protobuf.Timestamp valid_until = 3;
+  optional common.Money minimum_spend = 4;
+  string campaign_id = 5;
+  optional CampaignRedemptionDetails redemption_details = 7;
+  bool is_created = 8; // If true, the offer was created
+}
+message DiscountType {
+  oneof discount_type {
+    int32 discount_percentage = 1; // 0-100
+    common.Money discount_fixed = 2;
+  }
+}
+
+enum OfferStatus {
+  ACTIVE = 0;
+  EXPIRED = 1;
+  REDEEMED = 2;
+  VOIDED = 3;
+}
+
+enum OfferType {
+  FIXED = 0;
+  PERCENTAGE = 1;
+}
+
+message CampaignRedemptionDetails {
+  RedemptionPeriod redeemable_period = 1;
+  repeated RedemptionPeriod non_redeemable_periods = 2;
+  string timezone_id = 3;
+}
+
+message RedemptionPeriod{
+  string period_id = 1;
+  oneof period_target {
+    WeekDaysTarget week_days = 2;
+    DateRangeTarget date_range = 3;
+    DateRangeWithWeekDays date_range_with_week_days = 6;
+  }
+  oneof time_target {
+    bool all_day = 4;
+    TimeRange time_range = 5;
+  }
+  RedemptionType redemption_type = 7;
+}
+
+enum RedemptionType{
+  REDEEMABLE = 0;
+  NON_REDEEMABLE = 1;
+}
+
+message DateRangeWithWeekDays{
+  DateRangeTarget date_range = 1;
+  WeekDaysTarget week_days = 2;
+}
+
+message WeekDaysTarget{
+  repeated int32 week_days = 1;
+  bool all_week_days = 2;
+}
+
+message DateRangeTarget{
+  google.protobuf.Timestamp start_date = 1;
+  google.protobuf.Timestamp end_date = 2;
+}
+
+message TimeRange{
+  string start_time = 1;
+  string end_time = 2;
+  bool all_day = 3;
+}

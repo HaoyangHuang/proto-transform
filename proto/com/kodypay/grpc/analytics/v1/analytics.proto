@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.analytics.v1;
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AnalyticsProto";
+option java_package = "com.kodypay.grpc.analytics.v1";
+
+service KpAnalyticsService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetDataPoints(DataPointsRequest) returns (DataPointsResponse);
+}
+
+message DataPointsRequest {
+  string store_id = 1 [deprecated = true]; // see store_ids
+  google.protobuf.Timestamp from = 2;
+  google.protobuf.Timestamp to = 3;
+  DataPointMetric metric = 4;
+  optional DataPointInterval interval = 5;
+  optional DataPointBreakdown breakdown = 6;
+  repeated string store_ids = 7;
+}
+
+message DataPointsResponse {
+  DataPointMetric metric = 1;
+  optional DataPointBreakdown breakdown = 2;
+  optional DataPointInterval interval = 3;
+  // one of either series (if breakdown provided) or entries
+  repeated DataPointSeries series = 4;
+  repeated DataPointEntry entries = 5;
+  DataType data_type = 6; // the type of data in response
+  google.protobuf.Timestamp query_timestamp = 7;
+}
+
+message DataPointSeries {
+  optional string name = 1;
+  repeated DataPointEntry entries = 2;
+}
+
+message DataPointEntry {
+  optional google.protobuf.Timestamp timestamp = 1;
+  string value = 2; // Integer or BigDecimal
+  optional google.protobuf.Timestamp local_timestamp = 3;
+  optional string date_time = 4;
+}
+
+enum DataPointBreakdown {
+  STAFF = 0;
+  TERMINAL = 1;
+  ITEM = 2;
+}
+
+enum DataPointMetric {
+  SALES_VOLUME = 0;
+  TRANSACTION_COUNT = 1;
+  ITEM_COUNT = 2;
+}
+
+enum DataPointInterval {
+  HOURLY = 0;
+  DAILY = 1;
+  WEEKLY = 2;
+  MONTHLY = 3;
+  YEARLY = 4;
+}
+
+message DataType {
+  DataFormat format = 1;
+  optional string label = 2; //what does the data represent? e.g. symbol if currency or kg if weight
+}
+
+enum DataFormat {
+  NUMBER = 0;
+  CURRENCY = 1;
+  WEIGHT = 2;
+}

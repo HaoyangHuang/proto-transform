@@ -1,0 +1,48 @@
+syntax = "proto3";
+package com.kodypay.grpc.receipy;
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_package = "com.kodypay.grpc.receipy";
+option java_multiple_files = true;
+option java_outer_classname = "KpReceipy";
+
+service ReceipyService {
+  option (options.team) = PAYMENTS_SERVICES;
+  // security by JWT
+  rpc ListFiles(ListFilesRequest) returns (ListFilesResponse);
+  rpc DeleteFile(DeleteFileRequest) returns (DeleteFileResponse);
+}
+message ListFilesRequest {
+  string store_id = 1; // UUID
+  string external_reference = 2; // psp reference
+}
+message ListFilesResponse {
+  repeated File file = 1;
+}
+message DeleteFileRequest {
+  string store_id = 1; // UUID
+  string external_reference = 2; // psp reference
+  string id = 3;
+  ReferenceType reference_type = 4;
+
+  enum ReferenceType {
+    PAYMENT = 0;
+    REFUND = 1;
+    TRANSFER_IN = 2;
+    TRANSFER_OUT = 4;
+    ATM_WITHDRAWAL = 5;
+    ATM_FEE = 6;
+    MONTHLY_FEES = 7;
+    BANK = 8;
+  }
+}
+message DeleteFileResponse {
+}
+message File {
+  string id = 1;
+  string name = 2;
+  int32 size = 3;
+  string mime_type = 4;
+  google.protobuf.Timestamp created_at = 5;
+}

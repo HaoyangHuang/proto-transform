@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.settlement.transfer.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SettlementTransferProto";
+option java_package = "com.kodypay.grpc.settlement.transfer.v1";
+
+service SettlementTransferService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc CreateSettlementTransfer(CreateSettlementTransferRequest) returns (CreateSettlementTransferResponse);
+}
+
+message CreateSettlementTransferRequest {
+  string settlement_id = 1;
+}
+
+message CreateSettlementTransferResponse {}

@@ -1,0 +1,97 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.acquiringfees;
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/time.proto";
+import "com/kodypay/grpc/acquiring-fees/fees.proto";
+import "options/team.proto";
+
+option java_package = "com.kodypay.grpc.acquiringfees";
+option java_multiple_files = true;
+option java_outer_classname = "KpFeeAdmin";
+
+service FeeAdminService {
+  option (options.team) = INTERNAL_SERVICES;
+  // security by app token
+  rpc GetAllBaseRates(GetAllBaseRatesRequest) returns (GetAllBaseRatesResponse) {option deprecated = true;};
+  rpc GetRateGroupsByStore(GetRateGroupsByStoreRequest) returns (GetRateGroupsByStoreResponse) {option deprecated = true;};
+  rpc GetCombinedBaseAndStoreRateGroups(GetCombinedBaseAndStoreRateGroupsRequest) returns (GetCombinedBaseAndStoreRateGroupsResponse) {option deprecated = true;};
+  rpc SaveRateGroupForStore(SaveRateGroupForStoreRequest) returns (SaveRateGroupForStoreResponse) {option deprecated = true;};
+  rpc DeleteRateGroupForStore(DeleteRateGroupForStoreRequest) returns (DeleteRateGroupForStoreResponse) {option deprecated = true;};
+  rpc InitialiseStore(InitialiseStoreRequest) returns (InitialiseStoreResponse) {option deprecated = true;};
+  rpc SetStoreConfig(SetStoreConfigRequest) returns (StoreConfigResponse) {option deprecated = true;};
+  rpc SaveStoreConfig(SaveStoreConfigRequest) returns (StoreConfigResponse) {option deprecated = true;};
+  rpc GetStoreConfig(GetStoreConfigRequest) returns (StoreConfigResponse) {option deprecated = true;};
+}
+message GetAllBaseRatesRequest {
+}
+message GetAllBaseRatesResponse {
+  repeated RateGroup groups = 1;
+}
+message GetRateGroupsByStoreRequest {
+  string store_id = 1; // UUID
+}
+message GetRateGroupsByStoreResponse {
+  repeated StoreRateGroup groups = 1;
+  optional StoreConfig store_config = 2;
+}
+message GetCombinedBaseAndStoreRateGroupsRequest {
+  string store_id = 1;
+}
+message GetCombinedBaseAndStoreRateGroupsResponse {
+  repeated CombinedRateGroup groups = 1;
+
+  message CombinedRateGroup {
+    string id = 1;
+    Type type = 2;
+    bool enabled = 3;
+    RateGroup rate_group = 4;
+
+    enum Type {
+      BASE = 0;
+      STORE = 1;
+    }
+  }
+}
+message SaveRateGroupForStoreRequest {
+  string store_id = 1; // UUID
+  StoreRateGroup rate_group = 2;
+}
+message SaveRateGroupForStoreResponse {
+  StoreRateGroup rate_group = 1;
+}
+message DeleteRateGroupForStoreRequest {
+  string store_rate_group_id = 1; // UUID
+}
+message DeleteRateGroupForStoreResponse {
+}
+message InitialiseStoreRequest {
+  string store_id = 1; // UUID
+  string merchant_account_number = 2;
+  string kody_account_number = 3;
+  option deprecated = true;
+}
+message InitialiseStoreResponse {
+  StoreConfig store_config = 1;
+  option deprecated = true;
+}
+message SetStoreConfigRequest {
+  string store_id = 1; // UUID
+  StoreConfig store_config = 2;
+  option deprecated = true;
+}
+message SaveStoreConfigRequest {
+  string store_id = 1; // UUID
+  StoreConfig store_config = 2;
+}
+message GetStoreConfigRequest {
+  string store_id = 1; // UUID
+}
+message StoreConfigResponse {
+  optional StoreConfig store_config = 1;
+}
+message StoreConfig {
+  string merchant_adyen_balance_account = 1;
+  string kody_fees_depositing_adyen_balance_account = 2;
+  bool instant_fees = 3;
+}

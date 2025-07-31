@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.cards;
+
+import "options/team.proto";
+
+option java_outer_classname = "CashbackProto";
+option java_package = "com.kodypay.grpc.cards";
+
+service KpCashbackConfigurationService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc saveCashbackConfiguration(SaveCashbackConfigurationRequest) returns (SaveCashbackConfigurationResponse);
+  rpc updateCashbackConfiguration(UpdateCashbackConfigurationRequest) returns (UpdateCashbackConfigurationResponse);
+  rpc getCashbackConfiguration(GetCashbackConfigurationRequest) returns (GetCashbackConfigurationResponse);
+}
+
+message SaveCashbackConfigurationRequest {
+  CashbackConfiguration configuration = 1;
+}
+message CashbackConfiguration {
+  string store_id = 1;//uuid
+  bool enabled = 2;
+  double percentage_amount = 3; //% of the tx being given back as cashback. E.g.:tx amount = 5; this = 0.5 -> 5 * 0.005
+  uint32 payout_delay_in_days = 4;//delay payout until this days after the transaction is settled
+}
+message SaveCashbackConfigurationResponse {
+  CashbackConfiguration configuration = 1;
+}
+
+message UpdateCashbackConfigurationRequest {
+  string store_id = 1;
+  // optional will be used by server to understand if a field is required to be changed. If set it will override any existing value
+  optional bool enabled = 2;
+  optional double percentage_amount = 3;
+  optional uint32 payout_delay_in_days = 4;
+}
+message UpdateCashbackConfigurationResponse {
+  CashbackConfiguration configuration = 1;
+}
+
+message GetCashbackConfigurationRequest {
+  string store_id = 1;//uuid
+}
+message GetCashbackConfigurationResponse {
+  CashbackConfiguration configuration = 1;
+}

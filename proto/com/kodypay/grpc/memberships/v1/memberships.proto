@@ -1,0 +1,203 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.memberships.v1;
+
+option java_multiple_files = true;
+option java_outer_classname = "MembershipsProto";
+option java_package = "com.kodypay.grpc.memberships.v1";
+import "com/kodypay/grpc/common/money.proto";
+import "google/protobuf/timestamp.proto";
+
+
+service MembershipsService {
+  rpc SetEnableMembership(SetEnableMembershipRequest) returns (SetEnableMembershipResponse);
+  rpc GetIsMembershipEnabled(GetIsMembershipEnabledRequest) returns (GetIsMembershipEnabledResponse);
+  rpc CreateMembership(CreateMembershipRequest) returns (CreateMembershipResponse);
+  rpc GetMembershipList(GetMembershipListRequest) returns (GetMembershipListResponse);
+  rpc GetMembership(GetMembershipRequest) returns (GetMembershipResponse);
+  rpc EditMembership(EditMembershipRequest) returns (EditMembershipResponse);
+  rpc CancelMembership(CancelMembershipRequest) returns (CancelMembershipResponse);
+
+  rpc GetMembersList(GetMembersListRequest) returns (GetMembersListResponse);
+  rpc GetMember(GetMemberRequest) returns (GetMemberResponse);
+  rpc EditMember(EditMemberRequest) returns (EditMemberResponse);
+  rpc CancelMemberMembership(CancelMemberMembershipRequest) returns (CancelMemberMembershipResponse);
+}
+
+message CreateMembershipRequest {
+  string store_id = 1;
+  string name = 2;
+  optional string description = 3;
+  Frequency frequency = 4;
+  common.Money amount = 5;
+  MembershipPersonalDetailsConfig personal_details_config = 6;
+  MembershipPaymentMethods payment_methods = 7;
+}
+
+message CreateMembershipResponse {
+  Membership membership = 1;
+}
+
+message GetMembershipListRequest {
+  string store_id = 1;
+}
+
+message GetMembershipListResponse {
+  repeated Membership memberships = 1;
+}
+
+message GetMembershipRequest {
+  string store_id = 1;
+  string membership_id = 2;
+}
+
+message GetMembershipResponse {
+  Membership membership = 1;
+}
+
+message EditMembershipRequest {
+  string store_id = 1;
+  string membership_id = 2;
+  optional string name = 3;
+  optional string description = 4;
+  optional Frequency frequency = 5;
+  optional common.Money amount = 6;
+  optional google.protobuf.Timestamp effective_from = 7;
+  optional MembershipPersonalDetailsConfig personal_details_config = 8;
+  optional MembershipPaymentMethods payment_methods = 9;
+}
+
+message EditMembershipResponse {
+  Membership membership = 1;
+}
+
+message CancelMembershipRequest {
+  string store_id = 1;
+  string membership_id = 2;
+}
+
+message CancelMembershipResponse {
+  Membership membership = 1;
+}
+
+enum Frequency {
+  WEEKLY = 0;
+  MONTHLY = 1;
+  ANNUALLY = 2;
+}
+
+message MembershipPersonalDetailsConfig {
+  bool phone_number = 1;
+  bool name = 2;
+  bool billing_address = 3;
+  bool shipping_address = 4;
+  bool email = 5;
+}
+
+message MembershipPaymentMethods {
+  bool direct_debit = 1;
+  bool card = 2;
+}
+
+message Membership {
+  string store_id = 1;
+  string name = 2;
+  string description = 3;
+  Frequency frequency = 4;
+  common.Money amount = 5;
+  MembershipPersonalDetailsConfig personal_details_config = 6;
+  MembershipPaymentMethods payment_methods = 7;
+  string url = 8;
+  MembershipStatus status = 9;
+  int32 active_client_count = 10;
+  string membership_id = 11;
+}
+
+enum MembershipStatus {
+  ACTIVE = 0;
+  PENDING_CANCELLATION = 1;
+  CANCELLED = 2;
+}
+
+message GetMembersListRequest {
+  string store_id = 1;
+  optional string membership_id = 2;
+}
+
+message GetMembersListResponse {
+  repeated Member members = 1;
+}
+
+message GetMemberRequest {
+  string member_id = 1;
+}
+
+message GetMemberResponse {
+  Member member = 1;
+}
+
+message EditMemberRequest {
+  string member_id= 1;
+  string full_name = 2;
+  PhoneNumber phone = 3;
+  string email = 4;
+  string address = 5;
+  optional google.protobuf.Timestamp start_date = 6;
+  optional google.protobuf.Timestamp next_payment_date = 7;
+}
+
+message EditMemberResponse {
+  Member member = 1;
+}
+
+message CancelMemberMembershipRequest {
+  string member_id = 1;
+}
+
+message CancelMemberMembershipResponse {
+  Member member = 1;
+}
+
+message Member {  
+  string member_id= 1;
+  string full_name = 2;
+  PhoneNumber phone = 3;
+  string email = 4;
+  string address = 5;
+  google.protobuf.Timestamp start_date = 6;
+  google.protobuf.Timestamp next_payment_date = 7;
+  common.Money total_revenue = 8;
+  MemberStatus status = 9;
+  string store_id = 10;
+  string membership_id = 11;
+  string membership_name = 12;
+}
+
+enum MemberStatus {
+  MEMBER_ACTIVE = 0;
+  MEMBER_PENDING_CANCELLATION = 1;
+  MEMBER_PAYMENT_FAILED = 2;
+  MEMBER_SUSPENDED = 3;
+}
+
+message PhoneNumber {
+  string country_code = 1;
+  string phone_number = 2;
+}
+
+message SetEnableMembershipRequest {
+  string store_id = 1;
+}
+
+message SetEnableMembershipResponse {
+  bool enabled = 1;
+}
+
+// Request to check if the merchant has enabled membership
+message GetIsMembershipEnabledRequest {
+  string store_id = 1;
+}
+
+message GetIsMembershipEnabledResponse {
+  bool enabled = 1;
+}

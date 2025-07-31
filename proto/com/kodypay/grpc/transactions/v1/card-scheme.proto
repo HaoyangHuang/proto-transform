@@ -1,0 +1,23 @@
+syntax = "proto3";
+package com.kodypay.grpc.transactions.v1;
+option java_multiple_files = true;
+option java_outer_classname = "CardSchemeProto";
+option java_package = "com.kodypay.grpc.transactions.v1";
+
+enum CardScheme {
+  VISA = 0;
+  MASTERCARD = 1;
+  AMEX = 2;
+  BAN_CONTACT = 3;
+  CHINA_UNION_PAY = 4;
+  MAESTRO = 5;
+  DINERS = 6;
+  DISCOVER = 7;
+  JCB = 8;
+  UNKNOWN_METHOD = 9;
+  ALIPAY = 10;
+  WE_CHAT_PAY = 11;
+  ALIPAY_HK = 12;
+  VPAY = 13;
+  PAY_BY_BANK = 14;
+}

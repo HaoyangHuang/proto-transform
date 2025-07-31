@@ -1,0 +1,10 @@
+syntax = "proto3";
+import "com/kodypay/grpc/common/money.proto";
+package com.kodypay.grpc.common;
+option java_package = "com.kodypay.grpc.common";
+option java_multiple_files = true;
+option java_outer_classname = "KpCommonLocaleProto";
+message Locale {
+  string country_code = 1; // ISO 3166-1 alpha-2
+  common.Currency currency = 2;
+}

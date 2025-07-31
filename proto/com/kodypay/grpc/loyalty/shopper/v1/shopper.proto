@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.loyalty.shopper.v1;
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+option java_multiple_files = true;
+option java_outer_classname = "ShopperProto";
+option java_package = "com.kodypay.grpc.loyalty.shopper.v1";
+
+service ShopperService {
+  option (options.team) = SOFTWARE_SERVICES;
+  rpc GetShopperDetails(GetShopperDetailsRequest) returns (GetShopperDetailsResponse);
+  rpc GetOrCreateShopperIdentifier(GetOrCreateShopperIdentifierRequest) returns (GetOrCreateShopperIdentifierResponse);
+  rpc StorePhoneNumberforShopper(StorePhoneNumberforShopperRequest) returns (StorePhoneNumberforShopperResponse);
+}
+
+message GetShopperDetailsRequest {
+  // GetShopperDetailsRequest is used to retrieve the shopper details for a given card alias or payment account reference and store ID
+  string payment_account_reference = 1; // The payment account reference of the payment related to the shopper identifiers
+  string card_alias = 2; // The card alias of the payment related to the shopper identifiers
+  string store_id = 3; // The store ID of the payment related to the shopper identifiers
+}
+message GetShopperDetailsResponse {
+  // GetShopperDetailsResponse is used to return the shopper details for a given card alias or payment account reference and store ID
+  bool returning_shopper = 1;  // True if the shopper has been seen before
+  string shopper_identifier_id = 2; // The Kody shopper identifier ID
+}
+
+message GetOrCreateShopperIdentifierRequest {
+  // To be used for DelayedPayment flow
+  string payment_account_reference = 1; // The payment account reference of the payment related to the shopper identifiers
+  string card_alias = 2; // The card alias of the payment related to the shopper identifiers
+  string store_id = 3; // The store ID of the payment related to the shopper identifiers
+}
+message GetOrCreateShopperIdentifierResponse {
+  // GetOrCreateShopperIdentifierResponse is used to return the shopper identifier for a given store ID and shopper identifier ID
+  bool returning_shopper = 1;  // True if the shopper has been seen before
+  string shopper_identifier_id = 2; // The Kody shopper identifier ID
+  StoreInteraction store_interaction = 3;
+}
+
+message StorePhoneNumberforShopperRequest{
+  string shopper_identifier_id = 1;
+  PhoneNumber phone_number = 2;
+}
+message StorePhoneNumberforShopperResponse{}
+
+message StoreInteraction {
+  string shopper_store_interaction_id = 1; // The shopper store interaction ID
+  google.protobuf.Timestamp first_visited = 2; // The first time the shopper visited the store
+  google.protobuf.Timestamp last_visited = 3; // The last time the shopper visited the store
+}
+message PhoneNumber {
+  string country_code = 1;
+  string phone_number = 2;
+}

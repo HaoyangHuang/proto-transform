@@ -1,0 +1,275 @@
+syntax = "proto3";
+package com.kodypay.grpc.terminals.v1;
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "TransactionProto";
+option java_package = "com.kodypay.grpc.terminals.v1";
+
+service TransactionService {
+  option (options.team) = INTERNAL_SERVICES;
+  // gRPC AUTH types:
+  // a2: in payload (adyen poi id & token)
+  // a4: in header
+  //    POI_ID (the adyen poi id of the caller)
+  //    TOKEN (the auth token)
+  // a5: in header
+  //    TOKEN (app2app auth token)
+  rpc getTransactions(TransactionsRequest) returns (TransactionsResponse); // AUTH a2
+  rpc getTransactionsAndRefunds(TransactionsAndRefundsRequest) returns (TransactionsAndRefundsResponse); // AUTH a2
+  rpc getTransactionDetails(TransactionDetailsRequest) returns (TransactionDetailsResponse); // AUTH a2
+  rpc getRefundDetails(RefundDetailsRequest) returns (RefundDetailsResponse); // AUTH a2
+  rpc getTotals(TotalsRequest) returns (TotalsResponse); // AUTH a2
+  rpc saveReceiptData(SaveReceiptDataRequest) returns (SaveReceiptDataResponse); // AUTH a2 or no auth(?)
+  rpc saveRefundReceiptData(SaveRefundReceiptDataRequest) returns (SaveRefundReceiptDataResponse); // AUTH a5
+  rpc getReceiptData(ReceiptDataRequest) returns (ReceiptDataResponse); // AUTH a2 or no auth(?)
+  rpc GetReceiptDataForDownload(GetReceiptDataForDownloadRequest) returns (GetReceiptDataForDownloadResponse); // AUTH a5
+}
+message TransactionsRequest {
+  string adyen_poi_id = 1;
+  string token = 2;
+  repeated Filter filter = 3;
+}
+message TransactionsResponse {
+  repeated TransactionSummary transactions = 1;
+}
+message TransactionsAndRefundsRequest {
+  string adyen_poi_id = 1;
+  string token = 2;
+  repeated Filter filter = 3;
+}
+message TransactionsAndRefundsResponse {
+  repeated TransactionsAndRefundsSummary transactions = 1;
+}
+message TransactionSummary {
+  string transaction_id = 1;
+  TransactionStatus status = 2;
+  google.protobuf.Timestamp date_created = 3;
+  string last_four_digits = 4;
+  string totalAmount = 5; // BigDecimal
+  string refundAmount = 6; // BigDecimal
+  ShopperInteraction shopper_interaction = 7;
+  string tipAmount = 8; // BigDecimal
+  string payment_method = 9;
+  optional string payment_transaction_id = 10;
+}
+message TransactionsAndRefundsSummary {
+  string transaction_id = 1;
+  Type type = 2;
+  TransactionStatus status = 3;
+  google.protobuf.Timestamp date_created = 4;
+  oneof TypeDetails {
+    TransactionDetails transaction_details = 5;
+    RefundDetails refund_details = 6;
+  }
+  enum Type {
+    TRANSACTION = 0;
+    REFUND = 1;
+  }
+  message TransactionDetails {
+    string total_amount = 1; // BigDecimal
+    string refund_amount = 2; // BigDecimal
+    string tip_amount = 3; // BigDecimal
+    ShopperInteraction shopper_interaction = 4;
+    string payment_method = 5;
+  }
+  message RefundDetails {
+    string refund_amount = 1; // BigDecimal
+  }
+}
+message TransactionDetailsRequest {
+  string adyen_poi_id = 1;
+  string token = 2;
+  string transaction_id = 3;
+}
+message TransactionDetailsResponse {
+  reserved 5;
+  reserved "payment_method";
+  TransactionSummary summary = 1;
+  string tender_reference = 2;
+  string psp_reference = 3;
+  string terminal_id = 4 [deprecated = true];
+  repeated TransactionRefund refunds = 6;
+  oneof AdditionalData {
+    TerminalAdditionalData terminal_additional_data = 7;
+    PayByLinkAdditionalData pay_by_link_additional_data = 8;
+  }
+}
+message RefundDetailsRequest {
+  string adyen_poi_id = 1;
+  string token = 2;
+  string refund_transaction_id = 3; // transaction_id from a refund
+}
+message RefundDetailsResponse {
+  TransactionSummary summary = 1;
+  string tender_reference = 2;
+  string psp_reference = 3;
+  string terminal_id = 4;
+  repeated TransactionRefund refunds = 5;
+}
+message TotalsRequest {
+  string adyen_poi_id = 1;
+  string token = 2;
+  repeated Filter filter = 3;
+}
+message TotalsResponse {
+  Total total = 1;
+  repeated TotalGroup total_groups = 2;
+  message Total {
+    TotalDetails transactions = 1;
+    TotalDetails refunds = 2;
+    TotalDetails service_charges = 3;
+    string sum = 4; //BigDecimal
+  }
+  message TotalGroup {
+    string type = 1; // card type, etc...
+    Total total = 2;
+    string name = 3; // pretty card type name
+  }
+  message TotalDetails {
+    int32 count = 1;
+    string sum = 2; //BigDecimal
+  }
+}
+enum TransactionStatus {
+  SUCCESS = 0;
+  FAILURE = 1;
+  CANCELLED = 2;
+  REFUNDED = 3;
+}
+message SaveReceiptDataRequest {
+  reserved 2;
+  string psp_reference = 1;
+  string adyen_poi_id = 3;
+  string token = 4;
+  optional Receipt receipt = 5;
+}
+message SaveReceiptDataResponse {
+}
+message SaveRefundReceiptDataRequest {
+  string refund_psp_reference = 1;
+  string original_psp_reference = 2; // link to original tx, otherwise same as psp_reference, don't leave empty
+  ReceiptRefund refund = 3;
+}
+message SaveRefundReceiptDataResponse {
+}
+message ReceiptDataRequest {
+  string psp_reference = 1;
+  string adyen_poi_id = 2;
+  string token = 3;
+}
+message ReceiptDataResponse {
+  reserved 1;
+  optional Receipt receipt = 2;
+}
+message GetReceiptDataForDownloadRequest {
+  string psp_reference = 1;
+}
+message GetReceiptDataForDownloadResponse {
+  reserved 1;
+  optional Receipt receipt = 2;
+  optional string language = 3; //e.g. `en`
+}
+message Filter {
+  FilterType type = 1;
+  oneof FilterData {
+    string data_string = 2;
+    string data_number = 3; // BigDecimal
+    google.protobuf.Timestamp data_date = 4;
+  }
+  enum FilterType {
+    BY_TERMINAL_ID = 0;
+    BY_TRANSACTION_REFERENCE = 1;
+    BY_DATE_BEFORE = 2;
+    BY_DATE_AFTER = 3;
+    BY_AMOUNT_MIN = 4;
+    BY_AMOUNT_MAX = 5;
+    BY_LAST_FOUR_DIGITS = 6;
+    BY_PAYMENT_PROVIDER = 7; // applepay, googlepay, card, terminalpayment
+    BY_BATCH_ID = 8;
+  }
+}
+message TransactionRefund {
+  string refund_psp_reference = 1;
+  google.protobuf.Timestamp date_created = 2;
+  string amount = 3;
+  string terminal_id = 4;
+}
+enum ShopperInteraction {
+  UNKNOWN = 0;
+  ECOMMERCE = 1;
+  CONTAUTH = 2;
+  POS = 3;
+  MOTO = 4;
+  PAY_BY_LINK = 5;
+  PAY_BY_BANK = 6;
+}
+message TerminalAdditionalData {
+  string terminal_id = 1;
+}
+message PayByLinkAdditionalData {
+  string pay_by_link_id = 1;
+  string name = 2;
+  string phone = 3;
+  string email = 4;
+  Address billing_address = 5;
+  Address shipping_address = 6;
+  message Address {
+    string house_number_or_name = 1;
+    string street = 2;
+    string city = 3;
+    string postcode = 4;
+    optional string country_code = 5;
+  }
+}
+message Receipt {
+  Type type = 1;
+  Status status = 2;
+  string total = 3;
+  string tip = 4;
+  string amount = 5;
+  string datetime = 6;
+  string merchant_reference = 7;
+  string txtype = 8;
+  string tid = 9;
+  string pan = 10;
+  string aid = 11;
+  string auth_code = 12;
+  string pos_entry_mode = 13;
+  string mid = 14;
+  repeated ReceiptRefund refunds = 15; // not used for save receipt
+  optional string original_psp_reference = 16; // not used for save receipt
+  optional string deposit_reference = 17; // only used for PRE_AUTH and CAPTURED
+  PaymentType payment_type = 18;
+  string tender_ref = 19;
+  string payment_method = 20; // card scheme or AliPay/WeChatPay
+  optional string batch_id = 21; // only used for TWO_STEP_PAYMENT, CAPTURED, CANCELLED
+  map<string, string> extra_fields = 22; // so we can add more fields to the receipt without needing a proto change
+  optional string advertised_amount = 23;
+  optional string advertised_currency = 24;
+  optional string capture_amount = 25;
+  enum Type {
+    PAYMENT = 0;
+    REFUND = 1;
+    DEPOSIT = 2;
+    TWO_STEP_PAYMENT = 3;
+    CAPTURED = 4;
+    RELEASED = 5;
+    CANCELLED = 6;
+  }
+  enum Status {
+    ACCEPTED = 0;
+    DECLINED = 1;
+  }
+  enum PaymentType {
+    CARD_PRESENT = 0;
+    MANUAL_PAYMENT = 1;
+    PAY_BY_BANK = 2;
+  }
+}
+message ReceiptRefund {
+  string datetime = 1;
+  string refund_amount = 2;
+  string remaining_balance = 3;
+}

@@ -1,0 +1,18 @@
+syntax = "proto3";
+package com.kodypay.grpc.common;
+option java_package = "com.kodypay.grpc.common";
+option java_multiple_files = true;
+option java_outer_classname = "KpCommonTimeProto";
+
+message Date {
+  int32 year = 1;
+  int32 month = 2;
+  int32 day = 3;
+}
+
+message Time {
+  int32 hour = 1;
+  int32 minute = 2;
+  int32 second = 3;
+  int32 nano = 4;
+}

@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.banking.payees.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "PayeesProto";
+option java_package = "com.kodypay.grpc.banking.payees.v1";
+
+service PayeesService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc CheckAccountDetails(CheckAccountDetailsRequest) returns (CheckAccountDetailsResponse);
+  rpc AddPayee(AddPayeeRequest) returns (AddPayeeResponse);
+  rpc GetPayees(GetPayeesRequest) returns (GetPayeesResponse);
+  rpc GetPayee(GetPayeeRequest) returns (GetPayeeResponse);
+  rpc DeletePayee(DeletePayeeRequest) returns (DeletePayeeResponse);
+}
+
+message CheckAccountDetailsRequest{
+  AccountDetails account_details = 1;
+}
+message CheckAccountDetailsResponse{
+  bool success = 1;
+  optional string reason = 2;
+}
+
+message AddPayeeRequest{
+  string store_id = 1;
+  Payee payee = 2;
+}
+message AddPayeeResponse{
+  string payee_id = 1;
+}
+
+message GetPayeesRequest{
+  string store_id = 1;
+}
+message GetPayeesResponse{
+  repeated Payee payees = 1;
+}
+
+message GetPayeeRequest{
+  string store_id = 1;
+  string payee_id = 2;
+}
+message GetPayeeResponse{
+  Payee payee = 1;
+}
+
+message DeletePayeeRequest{
+  string store_id = 1;
+  string payee_id = 2;
+}
+message DeletePayeeResponse{
+}
+
+message Payee {
+  string payee_id = 1;
+  AccountDetails account_details = 2;
+  string description = 3;
+}
+message AccountDetails {
+  string name = 1;
+  oneof account {
+    UkBankAccount uk_bank_account = 2;
+    EUBankAccount eu_iban_account = 3;
+  }
+}
+message UkBankAccount {
+  string sort_code = 1;
+  string account_number = 2;
+}
+message EUBankAccount {
+  string iban = 1;
+  optional string bic = 2;
+}

@@ -1,0 +1,79 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.sca.external.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SCARegistrationPublicProto";
+option java_package = "com.kodypay.grpc.sca.external.v1";
+
+service KpScaRegistrationService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc StartScaRegistration(StartScaRegistrationRequest) returns (StartScaRegistrationResponse);
+  rpc FinalizeScaRegistration(FinalizeScaRegistrationRequest) returns (FinalizeScaRegistrationResponse);
+  rpc GetScaRegistrations(GetScaRegistrationsRequest) returns (GetScaRegistrationsResponse);
+  rpc DeleteScaRegistrations(DeleteScaRegistrationsRequest) returns (DeleteScaRegistrationsResponse); // This will be called by admin or KU
+}
+
+message StartScaRegistrationRequest {
+  reserved 1;
+  reserved "userId";
+  // string userId = 1; - Removed, userId will be directly inferred from JWT
+  oneof instrument_id {
+    string bank_account_id = 2;
+    string card_id = 3;
+  }
+  string sdk_output = 4;
+  string device_id = 5;
+  string device_alias = 6;
+}
+message StartScaRegistrationResponse {
+  string instrument_id = 1;
+  string sdk_input = 2;
+}
+
+message FinalizeScaRegistrationRequest {
+  reserved 1;
+  reserved "userId";
+  // string userId = 1; - Removed, userId will be directly inferred from JWT
+  oneof instrument_id {
+    string bank_account_id = 2;
+    string card_id = 3;
+  }
+  string registration_sdk_output = 4;
+}
+message FinalizeScaRegistrationResponse { }
+
+message GetScaRegistrationsRequest {
+  string bank_account_id = 1;
+  repeated ScaRegistrationStatus status = 2;
+}
+message GetScaRegistrationsResponse {
+  repeated ScaRegistrationUserData registrations = 1;
+}
+message ScaRegistrationUserData {
+  string id = 1;
+  ScaRegistrationStatus status = 2;
+  string user_id = 3;
+  string user_full_name = 4;
+  string device_id = 5;
+  string device_alias = 6;
+}
+enum ScaRegistrationStatus {
+  PENDING = 0;
+  IN_PROGRESS = 1;
+  ACTIVE = 2;
+  DELETED = 3;
+}
+
+message DeleteScaRegistrationsRequest {
+  oneof instrument_id {
+    string bank_account_id = 1;
+    string card_id = 2;
+  }
+}
+message DeleteScaRegistrationsResponse {
+  repeated ScaRegistrationUserData registrations = 1;
+}

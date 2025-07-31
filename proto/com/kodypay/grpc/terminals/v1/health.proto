@@ -1,0 +1,16 @@
+syntax = "proto3";
+package com.kodypay.grpc.terminals.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "HealthProto";
+option java_package = "com.kodypay.grpc.terminals.v1";
+
+service HealthService {
+    option (options.team) = SOFTWARE_SERVICES;
+
+    rpc HealthCheck (HealthCheckRequest) returns (HealthCheckResponse) {}
+}
+message HealthCheckRequest {}
+message HealthCheckResponse {}

@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.adminconfig;
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AdminConfigProto";
+option java_package = "com.kodypay.grpc.adminconfig";
+
+service KpAdminPaymentMethodsService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc createStorePaymentMethods(CreatePaymentMethodRequest) returns (CreatePaymentMethodResponse);
+  rpc updatePaymentMethod(PaymentMethodUpdateRequest) returns (PaymentMethodUpdateResponse);
+  rpc getStorePaymentMethodConfig(StorePaymentMethodsConfigRequest) returns (StorePaymentMethodsConfigResponse);
+}
+
+message CreatePaymentMethodRequest {
+    string store_id = 1;
+    repeated SalesChannelConfig sales_channel_config = 2;
+}
+
+message SalesChannelConfig {
+  string sales_channel = 1;
+  string account_code = 2;
+}
+
+message CreatePaymentMethodResponse {
+  repeated PaymentMethod payment_method = 1;
+}
+
+message PaymentMethod {
+    string payment_method_key = 1;
+    bool enabled = 2;
+}
+
+message PaymentMethodUpdateRequest {
+  string payment_method_key = 1;
+  string store_id = 2;
+  optional string terminal_id = 3;
+  bool enable = 4;
+  string sales_channel = 5;
+}
+
+message PaymentMethodUpdateResponse{
+  oneof response {
+    bool enabled = 1;
+    Error error = 2;
+  }
+}
+
+message Error {
+  optional string code = 1;
+  string description = 2;
+}
+
+message StorePaymentMethodsConfigRequest {
+  string store_id = 1;
+  string sales_channel = 2;
+  optional string terminal_id = 3;
+}
+
+message StorePaymentMethodsConfigResponse {
+  string store_id = 1;
+  string sales_channel = 2;
+  repeated PaymentMethodProperties payment_method_properties = 3;
+}
+
+message PaymentMethodProperties{
+  string payment_method_key = 1;
+  optional string terminal_id = 2;
+  bool enabled = 3;
+  string provider = 4;
+  string country = 8;
+  string currency = 9;
+}

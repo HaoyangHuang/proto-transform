@@ -1,0 +1,138 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.settlement.v1;
+
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/time.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SettlementProto";
+option java_package = "com.kodypay.grpc.settlement.v1";
+
+service SettlementService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc ConfigureAutomatedSettlement(ConfigureAutomatedSettlementRequest) returns (AutomatedSettlementDetails);
+  rpc GetAutomatedSettlementDetails(GetAutomatedSettlementDetailsRequest) returns (AutomatedSettlementDetails);
+
+  rpc FindSettlementsForBalanceId(FindSettlementsForBalanceIdRequest) returns (FindSettlementsForBalanceIdResponse);
+  rpc GetPaginatedSettlements(GetPaginatedSettlementsRequest) returns (GetPaginatedSettlementsResponse);
+  rpc UpdateSettlement(UpdateSettlementRequest) returns (UpdateSettlementResponse);
+}
+
+message GetAutomatedSettlementDetailsRequest {
+  string store_id = 1;
+}
+
+message ConfigureAutomatedSettlementRequest {
+  string store_id = 1;
+  SettlementScheduleType settlement_type = 2;
+  common.Time settlement_time = 3;
+  string settlement_zone_id = 4;
+  bool disabled = 5;
+  oneof target {
+    string target_balance_id = 6;
+    string target_instrument_id = 7;
+  }
+  FeePeriodType fee_period = 8;
+  string fees_source_balance_id = 9;
+  FeeScheme fee_scheme = 10;
+  optional google.protobuf.Timestamp next_run = 11;
+}
+
+enum FeeScheme {
+  Blended = 0;
+  ICPP = 1;
+}
+
+message AutomatedSettlementDetails {
+  string store_id = 1;
+  SettlementScheduleType settlement_type = 2;
+  common.Time settlement_time = 3;
+  string settlement_zone_id = 4;
+  bool disabled = 5;
+  oneof target {
+    string target_balance_id = 6;
+    string target_instrument_id = 7;
+  }
+  FeePeriodType fee_period = 8;
+  string fees_source_balance_id = 9;
+  FeeScheme fee_scheme = 10;
+  google.protobuf.Timestamp next_run = 11;
+}
+
+message FindSettlementsForBalanceIdRequest {
+  string balance_id = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+
+message FindSettlementsForBalanceIdResponse {
+  repeated Settlement settlements = 1;
+}
+
+message GetPaginatedSettlementsRequest {
+  string store_id = 1;
+  optional google.protobuf.Timestamp settlement_date_from = 2;
+  optional google.protobuf.Timestamp settlement_date_to = 3;
+  int32 first = 4;
+  int32 offset = 5;
+  optional string settlement_id = 6;
+}
+
+message GetPaginatedSettlementsResponse {
+  repeated Settlement settlements = 1;
+  common.Pagination pagination = 2;
+}
+
+message Settlement {
+  string settlement_id = 1;
+  string platform = 2;
+  google.protobuf.Timestamp settlement_date = 3;
+  string store_id = 4;
+  string balance_id = 5;
+  string transfer_type = 6;
+  string amount = 7;
+  SettlementStatus status = 8;
+  string external_reference = 9;
+  string adjustments_amount = 10;
+  string settled_balance_id = 11;
+  string payment_total = 12;
+  string payment_fee_total = 13;
+  string refund_total = 14;
+  string refund_fee_total = 15;
+  string unpaid_fee_total = 16;
+  string fee_transfer_id = 17;
+  FeePeriodType fee_period_type = 18;
+  string icp_fee_total = 19;
+  string ccc_fees_merchant_total = 20;
+  string ccc_fees_total = 21;
+}
+
+message UpdateSettlementRequest {
+  string settlement_id = 1;
+  optional SettlementStatus status = 2;
+}
+
+message UpdateSettlementResponse {
+  // Empty
+}
+
+enum SettlementScheduleType {
+  Daily = 0;
+  Monthly = 1;
+}
+
+enum FeePeriodType {
+  FeesDaily = 0;
+  FeesMonthly = 1;
+  FeesManually = 2;
+}
+
+enum SettlementStatus {
+  SETTLED = 0;
+  PENDING = 1;
+  FAILED = 2;
+}

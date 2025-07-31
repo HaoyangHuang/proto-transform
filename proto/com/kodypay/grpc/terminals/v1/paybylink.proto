@@ -1,0 +1,158 @@
+// DEPRECATED, use kp-protocols-paybylink
+
+syntax = "proto3";
+package com.kodypay.grpc.terminals.v1;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/terminals/v1/transactions.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "PayByLinkProto";
+option java_package = "com.kodypay.grpc.terminals.v1";
+
+service PayByLinkService {
+  option (options.team) = PAYMENTS_SERVICES;
+  // All calls to this service require the headers:
+  //    POI_ID (the poi id of the caller)
+  //    TOKEN (the auth token)
+  rpc CreateLink(CreateLinkRequest) returns (CreateLinkResponse);
+  rpc SuspendLink(SuspendLinkRequest) returns (SuspendLinkResponse);
+  rpc GetLinks(GetLinksRequest) returns (GetLinksResponse);
+  rpc GetLinkDetails(GetLinkDetailsRequest) returns (GetLinkDetailsResponse);
+  rpc ShareLink(ShareLinkRequest) returns (ShareLinkResponse);
+  rpc SetMerchantNotification(SetMerchantNotificationRequest) returns (SetMerchantNotificationResponse);
+  // non-terminals can request limited information about a link
+  // secured by APP_ID and TOKEN in the header
+  rpc GetLinkInformation(GetLinkInformationRequest) returns (GetLinkInformationResponse);
+  rpc FreezeUnFreezeLink(FreezeUnFreezeLinkRequest) returns (FreezeUnFreezeLinkResponse) {}
+}
+message CreateLinkRequest {
+  LinkType type = 1;
+  string amount = 2; // BigDecimal
+  google.protobuf.Timestamp expiry = 3;
+  string description = 4;
+  repeated LinkCustomerPrompt prompts = 5;
+  repeated MerchantNotificationRecipient merchant_notification_recipients = 6;
+}
+message CreateLinkResponse {
+  string link_id = 1;
+}
+message SuspendLinkRequest {
+  string link_id = 1;
+}
+message SuspendLinkResponse {
+}
+message GetLinksRequest {
+}
+message GetLinksResponse {
+  repeated LinkSummary links = 1;
+}
+message GetLinkDetailsRequest {
+  string link_id = 1;
+}
+message GetLinkDetailsResponse {
+  LinkSummary summary = 1;
+  LinkType type = 2;
+  google.protobuf.Timestamp expiry = 3;
+  string link_url = 4;
+  repeated LinkTransactionSummary transactions = 5;
+  repeated MerchantNotificationRecipient merchant_notification_recipients = 6;
+  repeated LinkCustomerPrompt prompts = 7;
+  repeated CustomerLinkShare customer_link_shares = 8;
+  optional google.protobuf.Timestamp freeze_updated_date = 9;
+}
+message ShareLinkRequest {
+  string link_id = 1;
+  CustomerLinkShareRequest customer_link_share = 2;
+}
+message ShareLinkResponse {
+}
+message SetMerchantNotificationRequest {
+  string link_id = 1;
+  repeated MerchantNotificationRecipient merchant_notification_recipients = 2;
+}
+message SetMerchantNotificationResponse {
+}
+message MerchantNotificationRecipient {
+  oneof value {
+    string email = 1;
+    string sms = 2;
+  }
+}
+enum LinkCustomerPrompt {
+  BILLING_ADDRESS = 0;
+  DELIVERY_ADDRESS = 1;
+  EMAIL = 2;
+  NAME = 3;
+  PHONE = 4;
+}
+message LinkSummary {
+  string link_id = 1;
+  string description = 2;
+  common.Money amount = 3;
+  google.protobuf.Timestamp created = 4;
+  LinkStatus status = 5;
+  int32 payments = 6;
+}
+enum LinkStatus {
+  ACTIVE = 0;
+  EXPIRED = 1;
+  COMPLETED = 2;
+  SUSPENDED = 3;
+  FREEZE = 4;
+}
+enum LinkType {
+  MULTIPLE = 0;
+  SINGLE = 1;
+}
+message LinkTransactionSummary {
+  TransactionSummary transaction_summary = 1;
+  PayByLinkAdditionalData pay_by_link_additional_data = 2;
+}
+message CustomerLinkShareRequest {
+  oneof CustomerLinkShareData {
+    CustomerLinkShareSmsRequest data_sms = 1;
+    CustomerLinkShareEmailRequest data_email = 2;
+  }
+  message CustomerLinkShareSmsRequest {
+    repeated string phone_number = 1;
+    string content = 2;
+  }
+  message CustomerLinkShareEmailRequest {
+    repeated string email_address = 1;
+    string subject = 2;
+    string body = 3;
+  }
+}
+message CustomerLinkShare {
+  google.protobuf.Timestamp shared_at = 1;
+  oneof ShareContent {
+    CustomerLinkShareSms data_sms = 2;
+    CustomerLinkShareEmail data_email = 3;
+  }
+  message CustomerLinkShareSms {
+    string phone_number = 1;
+    string content = 2;
+  }
+  message CustomerLinkShareEmail {
+    string email_address = 1;
+    string subject = 2;
+    string body = 3;
+  }
+}
+message GetLinkInformationRequest{
+  string link_id = 1;
+}
+message GetLinkInformationResponse{
+  string store_id = 1;
+}
+
+message FreezeUnFreezeLinkRequest {
+  string link_id = 1;
+  optional string store_id = 2;
+  LinkStatus status = 3;
+}
+
+message FreezeUnFreezeLinkResponse {
+}

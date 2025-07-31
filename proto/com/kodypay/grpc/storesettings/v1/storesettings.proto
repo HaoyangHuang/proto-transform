@@ -1,0 +1,241 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.storesettings.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StoreSettingsProto";
+option java_package = "com.kodypay.grpc.storesettings.v1";
+
+service KpStoreSettingsService {
+  option (options.team) = BACKEND;
+
+  rpc OnboardStore(OnboardStoreRequest) returns (StoreSettings);
+  rpc GetStoreSettings(GetStoreSettingsRequest) returns (StoreSettings);
+  rpc GetBalanceAccounts(GetBalanceAccountsRequest) returns (GetBalanceAccountsResponse);
+  rpc GetBalanceAccount(GetBalanceAccountRequest) returns (BalanceAccount);
+  rpc CreateBalanceAccount(CreateBalanceAccountRequest) returns (BalanceAccount);
+  rpc UpdateBalanceAccount(UpdateBalanceAccountRequest) returns (BalanceAccount);
+  rpc LinkBalanceAccount(LinkBalanceAccountRequest) returns (BalanceAccount);
+  rpc UnlinkBalanceAccount(UnlinkBalanceAccountRequest) returns (UnlinkBalanceAccountResponse);
+  rpc GetAcquiringBalanceAccounts(GetAcquiringBalanceAccountsRequest) returns (GetAcquiringBalanceAccountsResponse);
+}
+
+message UnlinkBalanceAccountResponse {}
+
+message OnboardStoreRequest {
+  string store = 1;
+  CreateAdyenStoreSettingsRequest adyen = 2;
+}
+
+message CreateAdyenStoreSettingsRequest {
+  CreateAdyenLegalEntity legal_entity = 1;
+}
+
+message CreateAdyenLegalEntity {
+  AdyenLegalEntityType type = 1;
+  oneof entity {
+    AdyenOrganisation organisation = 2;
+    AdyenSoleProprietorship sole_proprietorship = 3;
+  }
+}
+
+message GetAcquiringBalanceAccountsRequest {
+  optional google.protobuf.Timestamp created_after = 1;
+  int32 first = 2;
+  int64 offset = 3;
+}
+
+message CreatedDateFilteredPagination {
+  int32 first = 1;
+  int64 offset = 2;
+  int64 total = 3;
+  optional google.protobuf.Timestamp created_after = 4;
+}
+
+message GetAcquiringBalanceAccountsResponse {
+  repeated BalanceAccount accounts = 1;
+  CreatedDateFilteredPagination pagination = 2;
+}
+
+message GetStoreSettingsRequest {
+  string store = 1;
+}
+
+message CreateBalanceAccountRequest {
+  string store = 1;
+  Platform platform = 2;
+  string name = 3;
+  AccountType type = 4;
+  string description = 5;
+  string reference = 6 [deprecated = true];//we should set adyen ref to our own balance id
+  string organization = 7; //organization_id
+  string time_zone = 8;
+  string currency_code = 9; //ISO 4217 code
+}
+
+message UpdateBalanceAccountRequest {
+  reserved 6, 7;
+  string balance_account_id = 1;
+  Platform platform = 2;
+  string name = 3;
+  AccountType type = 4;
+  string description = 5;
+  string reference = 8 [deprecated = true];//we should set adyen ref to our own balance id
+  string time_zone = 9;
+}
+
+message LinkBalanceAccountRequest {
+  string store = 1;
+  string platform_balance_account_id = 2;
+  AccountType type = 3;
+  Platform platform = 4;
+}
+
+message UnlinkBalanceAccountRequest {
+  string store = 1;
+  string platform_balance_account_id = 2;
+  Platform platform = 3;
+}
+
+message GetBalanceAccountsRequest {
+  repeated AccountType type_in = 1;
+  string store = 2;
+  optional Platform platform = 3;
+}
+
+message GetBalanceAccountsResponse {
+  repeated BalanceAccount accounts = 1;
+}
+
+message GetBalanceAccountRequest {
+  oneof id {
+    string balance_account_id = 1;
+    PlatformBalanceAccountIdentifier platform_balance_account_identifier = 2;
+  }
+
+  message PlatformBalanceAccountIdentifier {
+    string platform_balance_account_id = 1;
+    Platform platform = 2;
+  }
+}
+
+message BalanceAccount {
+  reserved 2, 3;
+  string balance_account_id = 1;
+  string name = 4;
+  string description = 5;
+  string reference = 6 [deprecated = true];//adyen ref is not updatable
+  AccountType type = 7;
+  string platform_balance_account_id = 8;
+  Platform platform = 9;
+  string store = 10;
+  google.protobuf.Timestamp created_date = 11;
+  optional BankAccount bank_account = 12;
+  Time sales_day_closing_time = 13;
+  string time_zone = 14;
+  string organization = 15;
+  string currency_code = 16;//ISO 4217
+
+  message Time {
+    int32 hours = 1;
+    int32 minutes = 2;
+  }
+
+}
+
+message BankAccount {
+  string id = 1;
+  string platform_id = 2;
+  string bic = 3;
+  map<string, string> local_details = 4;
+  map<string, string> international_details = 5;
+}
+
+message StoreSettings {
+  string store = 1;
+  AdyenSettings adyen_settings = 2;
+}
+
+message AdyenSettings {
+  AdyenLegalEntity legal_entity = 1;
+  AdyenAccountHolder account_holder = 2;
+  repeated BalanceAccount accounts = 3;
+  repeated AdyenLegalEntity legal_entities = 4;
+}
+
+message AdyenLegalEntity {
+  string legal_entity_id = 1;
+  AdyenLegalEntityType type = 2;
+  oneof entityType {
+    AdyenOrganisation organisation = 3;
+    AdyenSoleProprietorship sole_proprietorship = 4;
+    AdyenIndividual individual = 5;
+  }
+}
+
+message AdyenOrganisation {
+  string legal_name = 1;
+  AdyenLegalEntityAddress registered_address = 2;
+  AdyenOrganisationType type = 3;
+}
+
+message AdyenSoleProprietorship {
+  string name = 1;
+  AdyenLegalEntityAddress registered_address = 2;
+  string country_of_governing_law = 3;
+  AdyenIndividual individual = 4;
+}
+
+message AdyenIndividual {
+  AdyenIndividualName name = 1;
+  AdyenLegalEntityAddress residential_address = 2;
+  string phone = 3;
+}
+
+message AdyenIndividualName {
+  string first = 1;
+  string middle = 2;
+  string last = 3;
+}
+
+message AdyenLegalEntityAddress {
+  string street = 1;
+  string city = 2;
+  string postal_code = 3;
+  string country = 4;
+  string street2 = 5;
+}
+
+message AdyenAccountHolder {
+  string account_holder_id = 1;
+}
+
+enum Platform {
+  CHECKOUT = 0;
+  ADYEN = 1;
+}
+
+enum AccountType {
+  ISSUING = 0;
+  ACQUIRING = 1;
+  SETTLEMENT = 2;
+}
+
+enum AdyenLegalEntityType {
+  ORG = 0;
+  INDIVIDUAL = 1;
+  SOLE_PROPRIETORSHIP = 2;
+  TRUST = 3;
+}
+
+enum AdyenOrganisationType {
+  INCORPORATED = 0;
+  GOV = 1;
+  PUBLIC = 2;
+  NON_PROFIT = 3;
+  PARTNERSHIP = 4;
+  PRIVATE = 5;
+}

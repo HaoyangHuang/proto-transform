@@ -1,0 +1,126 @@
+syntax = "proto3";
+package com.kodypay.grpc.terminals.v1;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/terminals/v1/twosteps.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "BatchesProto";
+option java_package = "com.kodypay.grpc.terminals.v1";
+
+service BatchesService {
+  option (options.team) = PAYMENTS_SERVICES;
+  // gRPC AUTH in header
+  //    POI_ID (the adyen poi/terminal id of the caller)
+  //    TOKEN (the auth token)
+  rpc getOrCreateBatch (GetOrCreateBatchRequest) returns (GetOrCreateBatchResponse);
+  rpc closeBatch (CloseBatchRequest) returns (CloseBatchResponse);
+  rpc getBatches (GetBatchesRequest) returns (GetBatchesResponse);
+  rpc getBatchInformation (GetBatchInformationRequest) returns (GetBatchInformationResponse);
+  rpc getBatchTotals (GetBatchTotalsRequest) returns (GetBatchTotalsResponse);
+  rpc associateRefund(AssociateRefundRequest) returns (AssociateRefundResponse);
+}
+
+message AssociateRefundRequest {
+  string refund_psp_reference = 1;
+  string batch_id = 2;
+  string terminal_id = 3;
+  string payment_psp_reference = 4;
+}
+
+message AssociateRefundResponse {
+}
+
+message GetOrCreateBatchRequest {
+  optional string terminal_id = 1; // value not set => global batch
+}
+message GetOrCreateBatchResponse {
+  BatchDetails batch = 1;
+}
+message CloseBatchRequest {
+  string batch_id = 1;
+  string idempotency_key = 2;
+}
+message CloseBatchResponse {
+  BatchDetails new_batch = 1;
+  BatchDetails closed_batch = 2;
+}
+message GetBatchesRequest {
+  optional common.Pagination pagination = 1;
+  optional google.protobuf.Timestamp date_from = 2;
+  optional google.protobuf.Timestamp date_to = 3;
+  optional string batch_id = 4;
+}
+message GetBatchesResponse {
+  optional common.Pagination pagination = 1;
+  repeated BatchDetails batches = 2;
+}
+message GetBatchInformationRequest {
+  optional common.Pagination pagination = 1;
+  string batch_id = 2;
+  optional google.protobuf.Timestamp payment_date_from = 3;
+  optional google.protobuf.Timestamp payment_date_to = 4;
+  optional common.Money amount_from = 5;
+  optional common.Money amount_to = 6;
+  optional string free_text_contains = 7;
+}
+message GetBatchInformationResponse {
+  optional common.Pagination pagination = 1;
+  BatchDetails batch = 2;
+  BatchSummary summary = 3;
+  repeated PaymentDetails payment_details = 4[deprecated = true]; // Use transaction_details instead
+  repeated BatchTransaction transaction_details = 5;
+}
+message BatchTransaction {
+  oneof transaction {
+    PaymentDetails payment_details = 1;
+    RefundDetails refund_details = 2;
+  }
+}
+message GetBatchTotalsRequest{
+  string batch_id = 1;
+}
+message GetBatchTotalsResponse {
+  DetailsTotal totals = 1;
+  repeated PaymentMethodTotals scheme_totals = 2;
+}
+message BatchDetails {
+  string batch_id = 1;
+  BatchState state = 2;
+  optional string terminal_id = 3;
+  google.protobuf.Timestamp created_at = 4;
+  optional google.protobuf.Timestamp closed_at = 5;
+  optional string created_by_terminal_id = 6;
+}
+message BatchSummary {
+  repeated DetailStatTuple stats = 4;
+}
+message DetailsTotal {
+  DetailsTuple amount = 1;
+  DetailsTuple tip = 2;
+  DetailsTuple voided_amount = 3; // negative value!
+  DetailsTuple voided_tip = 4; // negative value!
+  DetailsTuple total = 5;
+  DetailsTuple refunded_amount = 6; // negative value!
+}
+message PaymentMethodTotals {
+  string payment_method = 1;
+  DetailsTotal totals = 2;
+}
+message DetailStatTuple {
+  int32 count = 1;
+  common.Money value = 2;
+  optional PaymentState state = 3; // This is not set if it is a refund
+  bool is_refund = 4;
+}
+message DetailsTuple {
+  int32 count = 1;
+  common.Money value = 2;
+}
+enum BatchState {
+  BATCH_OPEN = 0;
+  BATCH_CLOSING = 1; // in process of capturing 2SP when closing before being closed.
+  BATCH_CLOSED = 2;
+}

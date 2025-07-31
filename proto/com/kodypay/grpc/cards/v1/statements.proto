@@ -1,0 +1,65 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.cards.v1;
+
+import "com/kodypay/grpc/common/time.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "StatementsProto";
+option java_package = "com.kodypay.grpc.cards.v1";
+
+service KpStatementService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc GetStatements(StatementsRequest) returns (StatementsResponse);
+  rpc GetYearMonthValues(YearMonthRequest) returns (YearMonthResponse);
+  rpc GenerateStatement(GenerateStatementRequest) returns (GenerateStatementResponse);
+}
+
+message StatementsRequest {
+  repeated string storeIn = 1 [deprecated = true];
+  repeated string yearMonthIn = 2; //format: YYYY-MM
+  int32 first = 3;
+  int32 offset = 4;
+  repeated string accountIn = 5;
+}
+
+message Statement {
+  string year_month = 1; //format: YYYY-MM
+  string store_id = 2;
+  string store_name = 3;
+  string start_date = 4;
+  string end_date = 5;
+  string file_name = 6;
+  string account_id = 7;
+  string account_name = 8;
+  string statement_id = 9;
+}
+
+message Pagination {
+  int32 first = 1;
+  int32 offset = 2;
+  int32 total = 3;
+}
+
+message StatementsResponse {
+  repeated Statement items = 1;
+  Pagination pagination = 2;
+}
+
+message YearMonthRequest {
+}
+
+message YearMonthResponse {
+  repeated string yearMonthValues = 1; //format: YYYY-MM
+}
+
+message GenerateStatementRequest {
+  string account_id = 1;
+  common.Date from = 2; //included
+  common.Date to = 3; //included
+}
+message GenerateStatementResponse {
+  string statement_id = 1;
+}

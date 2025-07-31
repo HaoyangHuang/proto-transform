@@ -1,0 +1,50 @@
+syntax = "proto3";
+import "com/kodypay/grpc/common/payment-channel.proto";
+import "com/kodypay/grpc/common/locale.proto";
+package com.kodypay.grpc.acquiringfees;
+option java_package = "com.kodypay.grpc.acquiringfees";
+option java_multiple_files = true;
+option java_outer_classname = "KpFees";
+message ChannelRates {
+  repeated ChannelRateEntry channel_rates = 1;
+  message ChannelRateEntry {
+    common.PaymentChannel key = 1;
+    Rate domestic = 2;
+    Rate international = 3;
+    common.Locale domestic_locale = 4;
+  }
+}
+message Rate {
+  string percentage = 1; // BigDecimal
+  string fixed = 2; // BigDecimal
+  optional string discount_percentage = 3 [deprecated = true]; // Never fully implemented - do not use
+  optional string discount_fixed = 4 [deprecated = true]; // Never fully implemented - do not use
+}
+message Variant {
+  string payment_method_variant = 1;
+}
+message RateGroup {
+  string name = 1;
+  ChannelRates rates = 2;
+  oneof value {
+    string brand = 3;
+    Variants variants = 4;
+  }
+  message Variants {
+    repeated Variant variants = 1;
+  }
+  CalculationMethod calculation_method = 5;
+}
+message StoreRateGroup {
+  optional string id = 1; // UUID
+  RateGroup rate_group = 2;
+  bool enabled = 3;
+}
+enum CalculationMethod {
+  Blended = 0;
+  Icpp = 1;
+}
+enum Acquirer {
+  Adyen = 0; // Default Value if not provided
+  Shift4 = 1;
+}

@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.cards.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "IssuedCardsProto";
+option java_package = "com.kodypay.grpc.cards.v1";
+
+service KpIssuedCardsService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc GetCards(CardsRequest) returns (CardsResponse);
+  rpc ChangeCardStatus(ChangeCardStatusRequest) returns (ChangeCardStatusResponse);
+  rpc GetPanRevealKey(RevealIssuedCardDetailKeyRequest) returns (RevealIssuedCardDetailKeyResponse);
+  rpc GetEncryptedPan(EncryptedIssuedCardDetailRequest) returns (EncryptedIssuedCardPanResponse) {
+    option deprecated = true;
+    // use GetCardDetails instead
+  };
+  rpc GetCardDetails(EncryptedIssuedCardDetailRequest) returns (EncryptedCardDetails);
+  rpc GetPinRevealKey(RevealIssuedCardDetailKeyRequest) returns (RevealIssuedCardDetailKeyResponse);
+  rpc GetEncryptedPin(EncryptedIssuedCardDetailRequest) returns (EncryptedIssuedCardPinResponse);
+}
+
+message CardsRequest {
+  string user_id = 1;
+}
+message CardsResponse {
+  repeated CardsDetails card_details = 1;
+}
+message CardsDetails {
+  string card_id = 1;
+  bool is_virtual = 2;
+  IssuedCardBrand cardBrand = 3;
+  BusinessDetails business_details = 4;
+  CardLifecycleStatus status = 5;
+  string card_holder_name = 6;
+  string last_four = 7;
+}
+message BusinessDetails {
+  string store_name = 1; // i.e. "KodyBakery"
+  string account_name = 2; // i.e. "Operations account"
+}
+enum IssuedCardBrand{
+  VISA = 0;
+  MASTERCARD = 1;
+}
+enum CardLifecycleStatus {
+  INACTIVE = 0;
+  ACTIVE = 1;
+  FROZEN = 2;
+  CANCELLED = 3;
+}
+message ChangeCardStatusRequest {
+  string card_id = 1;
+  CardLifecycleStatus card_status = 2;
+}
+message ChangeCardStatusResponse {}
+
+message RevealIssuedCardDetailKeyRequest {
+  string card_id = 1;
+}
+message RevealIssuedCardDetailKeyResponse {
+  string public_key = 1;
+  string public_key_expiry_date = 2; //Expected YYYY-MM-DD
+}
+message EncryptedIssuedCardDetailRequest {
+  string card_id = 1;
+  string encrypted_key = 2;
+  optional string otp = 3;
+}
+message EncryptedIssuedCardPanResponse {
+  string encrypted_data = 1;
+}
+message EncryptedCardDetails {
+  string encrypted_data = 1;
+  CardBillingAddress billing_address = 2;
+}
+message CardBillingAddress {
+  string firstLine = 1;
+  string secondLine = 2;
+  string postCode = 3;
+  string city = 4;
+  string country = 5;
+  string thirdLine = 6;
+}
+
+message EncryptedIssuedCardPinResponse {
+  string encrypted_data = 1;
+  string token = 2;
+}

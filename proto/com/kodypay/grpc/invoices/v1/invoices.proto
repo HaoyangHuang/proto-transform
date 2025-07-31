@@ -1,0 +1,152 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.invoices.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "InvoicesProto";
+option java_package = "com.kodypay.grpc.invoices.v1";
+
+service InvoicingService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetInvoices(GetInvoicesRequest) returns (GetInvoicesResponse);
+  rpc RecordInvoiceAction(InvoiceAction) returns (InvoiceState);
+  rpc GetInvoiceState(GetInvoiceStateRequest) returns (InvoiceState);
+  rpc GetFinancialDocuments(GetFinancialDocumentsRequest) returns (GetFinancialDocumentsResponse);
+}
+
+message GetInvoiceStateRequest {
+  string storeId = 1;
+  string invoiceId = 2;
+}
+
+message InvoiceAction {
+  string storeId = 1;
+  string invoiceId = 2;
+  oneof InvoiceActionDetails {
+    SetTransferred setTransferred = 3;
+    InitializeTransfer initializeTransfer = 4;
+    MarkTransferComplete markTransferComplete = 5;
+    MarkTransferFailed markTransferFailed = 6;
+  }
+
+  // For just marking an entire invoice transferred (ignores amounts)
+  message SetTransferred {
+    string description = 1;
+  }
+
+  // for initialising a transfer (can be partial)
+  message InitializeTransfer {
+    string description = 1;
+    string amount = 2;
+    string reference = 3;
+    string balanceId = 4;
+  }
+
+  // for recording that particular transfer was completed
+  message MarkTransferComplete {
+    string reference = 4;
+  }
+
+  // for recording that particular transfer failed
+  message MarkTransferFailed {
+    string reference = 4;
+  }
+}
+
+message InvoiceState {
+  repeated InvoiceAction actions = 1;
+  InvoiceStatus status = 2;
+  string transferredAmount = 3;
+  string totalAmount = 4;
+
+  enum InvoiceStatus {
+    Transferred = 0;
+    Pending = 1;
+    PartiallyTransferred = 2;
+  }
+}
+
+message GetFinancialDocumentsRequest {
+  message Filter {
+    optional string storeId = 1 [deprecated = true]; // see store_ids
+    optional string referenceContains = 2;
+    optional google.protobuf.Timestamp to = 3;
+    optional google.protobuf.Timestamp from = 4;
+    repeated string store_ids = 5;
+  }
+
+  message Pagination {
+    int32 first = 1;
+    int32 offset = 2;
+  }
+
+  Filter filter = 1;
+  Pagination pagination = 2;
+}
+
+message GetFinancialDocumentsResponse {
+  message FinancialDocument {
+    string date = 1;
+    string reference = 2;
+    string totalAmount = 3;
+    FinancialDocumentType type = 4;
+    string id = 5;
+    string dateRange = 6;
+    google.protobuf.Timestamp timestamp = 7;
+    optional string store_id = 8;
+    optional string store_name = 9;
+  }
+
+  enum FinancialDocumentType {
+    Invoice = 0;
+    AcquiringSummaryDocument = 1; // (also known as legacy/old statement)
+    SettlementStatement = 2;
+    RevenueStatement = 3;
+    DailySettlementStatement = 4;
+  }
+
+  message Pagination {
+    int32 first = 1;
+    int32 offset = 2;
+    int32 total = 3;
+  }
+
+  repeated FinancialDocument documents = 1;
+  Pagination pagination = 2;
+}
+
+message GetInvoicesRequest {
+  message Filter {
+    optional string storeId = 1;
+  }
+
+  message Pagination {
+    int32 first = 1;
+    int32 offset = 2;
+  }
+
+  Filter filter = 1;
+  Pagination pagination = 2;
+}
+
+message GetInvoicesResponse {
+  message Invoice {
+    string invoiceId = 1;
+    google.protobuf.Timestamp dateCreated = 2;
+    string invoiceNumber = 3;
+    string totalAmount = 4;
+  }
+
+  message Pagination {
+    int32 first = 1;
+    int32 offset = 2;
+    int32 total = 3;
+  }
+
+  repeated Invoice invoices = 1;
+  Pagination pagination = 2;
+}

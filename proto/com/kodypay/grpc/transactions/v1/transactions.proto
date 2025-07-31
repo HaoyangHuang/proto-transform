@@ -1,0 +1,507 @@
+syntax = "proto3";
+package com.kodypay.grpc.transactions.v1;
+
+import "com/kodypay/grpc/common/money.proto";
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+import "com/kodypay/grpc/transactions/v1/card-scheme.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "TransactionsProto";
+option java_package = "com.kodypay.grpc.transactions.v1";
+
+service KpTransactionsService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc GetPaymentTransactions(GetPaymentTransactionsRequest) returns (PagedPaymentTransactionsResponse);
+  rpc GetPreAuths(GetPreAuthsRequest) returns (GetPreAuthsResponse);
+  rpc GetPaymentTransaction(GetPaymentTransactionRequest) returns (PaymentTransactionDetails);
+  rpc GetPaymentTotals(GetPaymentTotalsRequest) returns (PaymentTotalsResponse);
+  rpc GetPaymentTotalsByChannel(GetPaymentTotalsRequest) returns (GetPaymentTotalsByChannelResponse);
+  rpc GetPaymentTotalsByChannelAndRateGroup(GetPaymentTotalsByChannelAndRateGroupRequest) returns (GetPaymentTotalsByChannelAndRateGroupResponse);
+  rpc GetRefundFeesBetweenTimestamps(GetRefundFeesBetweenTimestampsRequest) returns (GetRefundFeesBetweenTimestampsResponse);
+  rpc GetTransactionFeesBetweenTimestamps(GetTransactionFeesBetweenTimestampsRequest) returns (GetTransactionFeesBetweenTimestampsResponse);
+  rpc GetFeesBetweenTimestamps(GetFeesBetweenTimestampsRequest) returns (GetFeesBetweenTimestampsResponse);
+  rpc RefundPaymentTransaction(RefundPaymentTransactionRequest) returns (RefundPaymentTransactionResponse);
+  rpc GetShopperDetails(GetShopperDetailsRequest) returns (GetShopperDetailsResponse); // deprecated
+  rpc GetOrCreateShopperIdentifier(GetOrCreateShopperIdentifierRequest) returns (GetOrCreateShopperIdentifierResponse); // deprecated
+}
+
+message GetPreAuthsRequest {
+  string store_id = 1;
+  int32 first = 2;
+  int32 offset = 3;
+  optional google.protobuf.Timestamp paged_before = 4;
+  repeated PreAuthStatus status_in = 5; // none specified means all
+}
+
+enum PreAuthStatus {
+  PreAuthorised = 0;
+  FailedPreAuthorise = 1;
+  Captured = 2;
+  FailedCapture = 3;
+}
+
+message GetPreAuthsResponse {
+  repeated PreAuth pre_auths = 1;
+  common.Pagination pagination = 2;
+}
+
+message PreAuth {
+  google.protobuf.Timestamp created_date = 1;
+  optional string tender_reference = 2;
+  PreAuthType type = 3;
+  PreAuthStatus status = 4;
+  CardScheme card_scheme = 5;
+  string card_type = 6;
+  string pre_auth_amount = 7;
+  string tip_amount = 8;
+  string captured_amount = 9;
+  string terminal_id = 10;
+  string card_last_four_digits = 11;
+  optional string deposit_reference = 12;
+  optional string deposit_id = 13;
+  string psp_reference = 14;
+  optional string batch_id = 15;
+}
+
+enum PreAuthType {
+  TwoStepPayment = 0;
+  Deposit = 1;
+}
+
+message RefundPaymentTransactionRequest {
+  oneof payment_id {
+    string payment_transaction_id = 1;
+    string psp_reference = 3;
+  }
+  string amount = 2; // BigDecimal
+  optional string refund_store_id = 4;
+  optional string ext_payment_reference = 5;
+  optional string ext_order_id = 6;
+}
+
+message RefundPaymentTransactionResponse {
+  PaymentTransactionDetails transaction_details = 1;
+  RefundStatus status = 2;
+  optional string error_description = 3;
+  optional string ext_payment_reference = 4;
+  optional string ext_order_id = 5;
+
+  enum RefundStatus {
+    REFUND_REQUESTED = 0;
+    REFUND_FAILED = 1;
+    REFUND_REJECTED = 2;
+  }
+}
+
+message GetPaymentTotalsByChannelAndRateGroupRequest {
+  optional string store_id = 1 [deprecated = true]; // see store_ids
+  optional string settlement_id = 2;
+  optional google.protobuf.Timestamp to = 3;
+  optional google.protobuf.Timestamp from = 4;
+  optional string terminal_id = 5;
+  repeated string store_ids = 6;
+}
+message GetPaymentTotalsByChannelAndRateGroupResponse {
+  Total total = 1;
+  map<string, Platform> by_platform = 2;
+
+  message Platform {
+    Total total = 1;
+    map<string, Channel> by_channel = 2;
+
+    message Channel {
+      Total total = 1;
+      map<string, RateGroup> by_rate_group = 2;
+
+      message RateGroup {
+        Total total = 1;
+        string fixed = 2;
+        string percentage = 3;
+      }
+    }
+  }
+
+  message Total {
+    string sales = 1;
+    string tips = 2;
+    string refunds = 3;
+    string unpaid_fees = 4;
+    string paid_fees = 5;
+    string net = 6;
+    string gross = 7;
+    string combined_fees = 8;
+    int32 sales_count = 9;
+    int32 tips_count = 10;
+    int32 refunds_count = 11;
+  }
+}
+message GetRefundFeesBetweenTimestampsRequest {
+  string store_id = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+message GetRefundFeesBetweenTimestampsResponse {
+  string store_id = 1;
+  string kodypay_fees_refunded = 2; // Represents refunds that take from kodypay liable account
+  string refund_fees = 3; // Just the fees applied by fixed_fee + percentage_fee * refund_amount
+}
+message GetPaymentTotalsRequest {
+  optional string store_id = 1 [deprecated = true]; // see store_ids
+  optional google.protobuf.Timestamp to = 2;
+  optional google.protobuf.Timestamp from = 3;
+  optional TransactionPlatform platform = 4;
+  optional string settlement_id = 5;
+  optional string terminal_id = 6;
+  repeated string store_ids = 7;
+}
+message PaymentTotalsResponse {
+  int32 number_payments = 1;
+  int32 number_tips = 2;
+  int32 number_refunds = 3;
+  string total_payments = 4;
+  string total_tips = 5;
+  string total_refunds = 6;
+  string total_fees = 7;
+  string net_total = 8;
+  map<string, PlatformSpecificPaymentTotal> by_platform = 9;
+  string gross_total = 10;
+}
+message PlatformSpecificPaymentTotal {
+  int32 number_payments = 1;
+  int32 number_tips = 2;
+  int32 number_refunds = 3;
+  string total_payments = 4;
+  string total_tips = 5;
+  string total_refunds = 6;
+  string total_fees = 7;
+  string net_total = 8;
+  map<string, CardSpecificPaymentTotal> by_card_scheme = 9;
+  string gross_total = 10;
+}
+message GetPaymentTotalsByChannelResponse {
+  int32 number_payments = 1;
+  int32 number_tips = 2;
+  int32 number_refunds = 3;
+  string total_payments = 4;
+  string total_tips = 5;
+  string total_refunds = 6;
+  string total_fees = 7;
+  string net_total = 8;
+  map<string, PlatformSpecificPaymentTotalWithChannels> by_platform = 9;
+  string gross_total = 10;
+}
+message PlatformSpecificPaymentTotalWithChannels {
+  int32 number_payments = 1;
+  int32 number_tips = 2;
+  int32 number_refunds = 3;
+  string total_payments = 4;
+  string total_tips = 5;
+  string total_refunds = 6;
+  string total_fees = 7;
+  string net_total = 8;
+  string gross_total = 9;
+  map<string, ChannelSpecificPaymentTotal> by_channel = 10;
+}
+message ChannelSpecificPaymentTotal {
+  int32 number_payments = 1;
+  int32 number_tips = 2;
+  int32 number_refunds = 3;
+  string total_payments = 4;
+  string total_tips = 5;
+  string total_refunds = 6;
+  string total_fees = 7;
+  string net_total = 8;
+  string gross_total = 9;
+  map<string, CardSpecificPaymentTotal> by_card_scheme = 10;
+}
+message CardSpecificPaymentTotal {
+  int32 number_payments = 1;
+  int32 number_tips = 2;
+  int32 number_refunds = 3;
+  string total_payments = 4;
+  string total_tips = 5;
+  string total_refunds = 6;
+  string total_fees = 7;
+  string net_total = 8;
+  string gross_total = 9;
+}
+message GetPaymentTransactionsRequest {
+  optional string store_id = 1 [deprecated = true]; // see store_ids
+  int32 first = 2;
+  int32 offset = 3;
+  // We need this because transactions come in quickly so pagination will break without an upper bound
+  // ie) We list the first 5 at offset 0, then 5 transactions come in, we list the first 5 at offset 5, without a bound
+  // this would return the same 5 transactions!
+  // Idea is to do an initial retrieval then on following calls pass up a timestamp returned in the initial pagination
+  // result to help the API filter out newer payments
+  optional google.protobuf.Timestamp paged_before = 4;
+  optional TransactionPlatform platform = 6;
+  optional google.protobuf.Timestamp transaction_date_from = 7;
+  optional google.protobuf.Timestamp transaction_date_to = 8;
+  optional string settlement_id = 9;
+  optional string payment_link_id = 10;
+  optional string terminal_id = 11;
+  optional string payment_reference = 12 [deprecated = true];
+  optional string card_last_four_digits = 13 [deprecated = true];
+  optional string min_amount = 14 [deprecated = true];
+  optional string max_amount = 15 [deprecated = true];
+  optional bool exclude_refunds = 16;
+  optional bool include_partial_transactions = 17;
+  optional string batch_id = 18;
+  optional string free_text_contains = 19;
+  optional string amount_from = 20; //BigDecimal
+  optional string amount_to = 21; //BigDecimal
+  repeated string store_ids = 22;
+  repeated CardScheme card_scheme_in = 23;
+}
+message GetPaymentTransactionRequest {
+  oneof id {
+    string payment_transaction_id = 1;
+    string external_transaction_id = 2;
+  }
+  optional string payment_store_id = 3;
+}
+message PaymentPagination {
+  int32 first = 1;
+  int32 offset = 2;
+  int32 total = 3;
+  google.protobuf.Timestamp paged_before = 4;
+}
+message PagedPaymentTransactionsResponse {
+  repeated PaymentTransaction items = 1;
+  PaymentPagination pagination = 2;
+}
+// Named PaymentTransaction to distinguish from a more general API that includes other kinds of transfers
+message PaymentTransaction {
+  google.protobuf.Timestamp created_date = 1;
+  string tender_reference = 2;
+  PaymentTransactionType type = 3;
+  PaymentTransactionStatus status = 4;
+  CardScheme card_scheme = 5;
+  string card_type = 6;
+  string payment_amount = 7;
+  string tip_amount = 8;
+  string total_amount = 9;
+  string fees = 10; // This is just payment fees and doesn't include any additional fees
+  string terminal_id = 11;
+  TransactionPlatform platform = 12;
+  string payment_transaction_id = 13;
+  optional string payment_link_id = 14;
+  string card_last_four_digits = 15;
+  string total_amount_refunded = 16;
+  int32 attachment_count = 17;
+  optional string deposit_reference = 18;
+  optional string deposit_id = 19;
+  optional string order_id = 20;
+  string psp_reference = 21;
+  TransactionSource source = 22;
+  optional string payment_reference = 23;
+  optional string ccc_fees = 24;
+  string total_fees = 25; // This is the total fees including all additional fees
+  bool is_no_cvv = 26;
+  bool is_three_ds = 27;
+  bool is_fx_adjusted = 28;
+  optional string loyalty_discount_amount = 29;
+  optional string store_id = 30;
+  optional string store_name = 31;
+}
+
+enum CalculationMethod {
+  Blended = 0;
+  Icpp = 1;
+}
+
+enum TransactionSource {
+  Online = 0;
+  Terminal = 1;
+}
+
+message PaymentTransactionDetails {
+  message RefundDetails {
+    string payment_transaction_id = 1;
+    string amount = 2;
+    google.protobuf.Timestamp date = 3;
+    optional string psp_reference = 4; // Might not have a PSP yet reference if pending
+    optional string terminal_id = 5;
+    bool is_pending = 6;
+  }
+
+  message PayByLink {
+    string pay_by_link_id = 1;
+    string name = 2;
+    string phone = 3;
+    string email = 4;
+    Address billing_address = 5;
+    Address shipping_address = 6;
+    string description = 7;
+
+    message Address {
+      string house_number_or_name = 1;
+      string street = 2;
+      string city = 3;
+      string postcode = 4;
+    }
+  }
+
+  message ChargebackDetails {
+    string amount = 1;
+    string status = 2;
+    google.protobuf.Timestamp chargeback_time = 3;
+    string reason = 4;
+    string fee = 5;
+  }
+
+  string payment_transaction_id = 1;
+  google.protobuf.Timestamp created_date = 2;
+  PaymentTransactionType type = 3;
+  PaymentTransactionStatus status = 4;
+  TransactionPlatform platform = 5;
+  string card_type = 6;
+  CardScheme card_scheme = 7;
+  string payment_amount = 8;
+  string tip_amount = 9;
+  string total_amount = 10;
+  string refund_amount = 11;
+  string fee_amount = 12; // This is just payment/refund fees and doesn't include any additional fees
+  string tender_reference = 13;
+  string original_payment_transaction_id = 14;
+  string settlement_external_reference = 15;
+  string settlement_id = 16;
+  string psp_reference = 17;
+  string card_last_four_digits = 18;
+  repeated RefundDetails refunds = 19;
+  optional string terminal_id = 20;
+  optional PayByLink pay_by_link = 21;
+  string total_amount_refunded = 22;
+  int32 attachment_count = 23;
+  optional string deposit_reference = 24;
+  optional string deposit_id = 25;
+  optional string order_id = 26;
+  optional string payment_reference = 27;
+  optional string store_name = 28;
+  optional string ccc_fee_amount = 29;
+  bool apply_customer_fx_currency = 30;
+  optional common.Money ccc_calculated_amount = 31;
+  optional string captured_amount = 32;
+  optional string fx_adjusted_amount = 33;
+  string total_fees = 38; // This is the total fees including all additional fees
+  optional string payment_fee_fixed = 34;
+  optional string payment_fee_percentage = 35;
+  optional string no_cvv_fee_percentage = 36;
+  optional string no_cvv_fee_amount = 37;
+  bool is_no_cvv = 39;
+  optional string three_ds_fee_percentage = 40;
+  optional string three_ds_fee_amount = 41;
+  bool is_three_ds = 42;
+  optional string fx_adjustment_fee_percentage = 43;
+  optional string fx_adjustment_fee_amount = 44;
+  bool is_fx_adjusted = 45;
+  CalculationMethod calculation_method = 46;
+  string scheme_fee = 47;
+  string interchange_fee = 48;
+  optional string loyalty_discount_amount = 49;
+  bool scheme_and_interchange_data_received = 50;
+  optional string refund_fee_fixed = 51;
+  optional string refund_fee_percentage = 52;
+  repeated ChargebackDetails chargebacks = 53;
+  optional string store_id = 54;
+  optional string settlement_payout_id = 55;
+}
+enum PaymentTransactionType {
+  REFUND = 0 [deprecated = true];
+  PAYMENT_MKE = 1;
+  PAYMENT = 2;
+  PAY_BY_LINK = 3;
+  PAYMENT_ONLINE = 4;
+  DEPOSIT = 5;
+  TWO_STEP = 6;
+  ECOM = 7;
+  IPP_PAY_BY_BANK = 8;
+}
+enum PaymentTransactionStatus {
+  SUCCESS = 0;
+  FAILURE = 1;
+  CANCELLED = 2;
+  PENDING = 3 [deprecated = true];
+  REFUNDED = 4;
+  FAILED_REFUND = 5;
+  PENDING_REFUND = 6;
+}
+enum TransactionPlatform {
+  ADYEN = 0;
+  CHECKOUT = 1;
+  YAPILY = 2;
+  SHIFT4 = 3;
+}
+message GetTransactionFeesBetweenTimestampsRequest {
+  string store_id = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+message GetTransactionFeesBetweenTimestampsResponse {
+  common.Money adyen = 1;
+  common.Money checkout = 2;
+  common.Money total = 3;
+}
+message GetFeesBetweenTimestampsRequest {
+  string store_id = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+message GetFeesBetweenTimestampsResponse {
+  Fees adyen = 1;
+  Fees checkout = 2;
+  Fees total = 3;
+
+  message Fees {
+    common.Money payments = 1;
+    common.Money delayed_payments = 7;
+    common.Money refunds = 2;
+    common.Money delayed_refunds = 8;
+    common.Money chargebacks = 3;
+    common.Money total = 4;
+    common.Money chargebackAmounts = 5;
+    common.Money chargebackReversedAmounts = 6;
+  }
+}
+
+// GetShopperDetailsRequest is used to retrieve the shopper details for a given card alias or payment account reference and store ID
+message GetShopperDetailsRequest {
+  // deprecated
+  string payment_account_reference = 1; // The payment account reference of the payment related to the shopper identifiers
+  string card_alias = 2; // The card alias of the payment related to the shopper identifiers
+  string store_id = 3; // The store ID of the payment related to the shopper identifiers
+}
+
+// GetShopperDetailsResponse is used to return the shopper details for a given card alias or payment account reference and store ID
+message GetShopperDetailsResponse {
+  // deprecated
+  bool returning_shopper = 1;  // True if the shopper has been seen before
+  string shopper_identifier_id = 2; // The Kody shopper identifier ID
+}
+
+// To be used for DelayedPayment flow
+message GetOrCreateShopperIdentifierRequest {
+  // deprecated
+  string payment_account_reference = 1; // The payment account reference of the payment related to the shopper identifiers
+  string card_alias = 2; // The card alias of the payment related to the shopper identifiers
+  string store_id = 3; // The store ID of the payment related to the shopper identifiers
+}
+
+// GetOrCreateShopperIdentifierResponse is used to return the shopper identifier for a given store ID and shopper identifier ID
+message GetOrCreateShopperIdentifierResponse {
+  // deprecated
+  bool returning_shopper = 1;  // True if the shopper has been seen before
+  string shopper_identifier_id = 2; // The Kody shopper identifier ID
+  StoreInteraction store_interaction = 3;
+}
+
+message StoreInteraction {
+  // deprecated
+  string shopper_store_interaction_id = 1; // The shopper store interaction ID
+  google.protobuf.Timestamp first_visited = 2; // The first time the shopper visited the store
+  google.protobuf.Timestamp last_visited = 3; // The last time the shopper visited the store
+}

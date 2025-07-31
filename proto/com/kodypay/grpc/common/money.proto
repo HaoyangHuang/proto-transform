@@ -1,0 +1,16 @@
+syntax = "proto3";
+package com.kodypay.grpc.common;
+option java_package = "com.kodypay.grpc.common";
+option java_multiple_files = true;
+option java_outer_classname = "KpCommonMoneyProto";
+message Money {
+  string value = 1; // BigDecimal
+  Currency currency = 2 [deprecated = true];
+  string currency_code = 3; // 3letter_iso4217
+}
+enum Currency {
+  GBP = 0;
+  EUR = 1;
+  USD = 2;
+  HKD = 3;
+}

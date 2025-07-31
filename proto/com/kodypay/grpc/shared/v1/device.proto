@@ -1,0 +1,15 @@
+syntax = "proto3";
+package com.kodypay.grpc.shared.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "DeviceProto";
+option java_package = "com.kodypay.grpc.shared.v1";
+
+message PushDevice {
+  string internal_device_id = 1;
+  string device_name = 2;
+  string push_id = 3;
+  optional google.protobuf.Timestamp last_used = 4;
+}

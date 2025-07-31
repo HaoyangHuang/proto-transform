@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+import "com/kodypay/grpc/common/money.proto";
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+package com.kodypay.grpc.cards;
+
+option java_outer_classname = "CashbackInfoProto";
+option java_package = "com.kodypay.grpc.cards";
+
+service KpCashbackInfoService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc getAccountInfo(GetAccountInfoRequest) returns (GetAccountInfoResponse);
+}
+
+message GetAccountInfoRequest {
+  string account_id = 1; // uuid, internal balance account id
+}
+
+message GetAccountInfoResponse {
+  bool is_active = 1;
+  bool was_active = 2;
+  common.Money paid_amount = 3;
+  common.Money pending_amount = 4;
+  optional google.protobuf.Timestamp next_payout_date = 5;
+}

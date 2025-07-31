@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.sca.internal.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SCAInternalProto";
+option java_package = "com.kodypay.grpc.sca.internal.v1";
+
+service KpScaInternalService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc AssociateUser(AssociateUserRequest) returns (AssociatedUser);
+  rpc GetUserAssociation(GetUserAssociationRequest) returns (GetUserAssociationResponse);
+}
+
+message AssociateUserRequest {
+  oneof instrumentId {
+    string bankAccountId = 2;
+    string cardId = 3;
+  }
+  optional string requestingUserId = 4;
+  oneof userIdentifier {
+    string userId = 1;
+    string email = 5;
+  }
+}
+
+message GetUserAssociationRequest {
+  string bank_account_id = 1;
+  repeated AssociationStatus status = 2;
+}
+message GetUserAssociationResponse {
+  repeated AssociatedUser associations = 1;
+}
+
+message AssociatedUser {
+  string bank_transfer_authorizer_id = 1;
+  string bank_account_id = 2;
+  string user_id = 3;
+  string store_id = 4;
+  string balance_account_id = 5;
+  AssociationStatus status = 6;
+  google.protobuf.Timestamp requested_at = 7;
+  optional google.protobuf.Timestamp active_since = 8;
+  string user_email = 9;
+  string user_full_name = 10;
+  string device_id = 11;
+  string device_alias = 12;
+}
+
+enum AssociationStatus {
+  PENDING = 0;
+  IN_PROGRESS = 1;
+  ACTIVE = 2;
+  DELETED = 3;
+}

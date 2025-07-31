@@ -1,0 +1,138 @@
+syntax = "proto3";
+package com.kodypay.grpc.wombat.v1;
+
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/wombat/v1/common.proto";
+import "com/kodypay/grpc/common/pay-by-link.proto";
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "KpWombatProto";
+option java_package = "com.kodypay.grpc.wombat.v1";
+
+service LinkFrontendService {
+  option (options.team) = PAYMENTS_SERVICES;
+  // Note: No security on this protocol
+  rpc GetLink(GetLinkRequest) returns (GetLinkResponse);
+  rpc GetIntegratedPayment(GetIntegratedPaymentRequest) returns (GetIntegratedPaymentResponse);
+  rpc GetIntegratedPaymentCardToken(GetIntegratedPaymentCardTokenRequest) returns (GetIntegratedPaymentCardTokenResponse);
+  rpc GetPaymentMethods(GetPaymentMethodsRequest) returns (GetPaymentMethodsResponse);
+  rpc CreatePaymentSession(CreatePaymentSessionRequest) returns (CreatePaymentSessionResponse);
+  rpc CompletePaymentSession(CompletePaymentSessionRequest) returns (CompletePaymentSessionResponse);
+  rpc CreateApplePay(CreateApplePayRequest) returns (CreateApplePayResponse);
+}
+message GetLinkRequest {
+  string link_id = 1;
+}
+message GetLinkResponse {
+  common.LinkType type = 1;
+  LinkStatus status = 2;
+  common.Money amount = 3;
+  string description = 4;
+  repeated LinkPrompt prompts = 5;
+  string store_name = 7;
+  string default_language = 8;  // ISO 639 alpha-2 (eg. en)
+  repeated string supported_languages = 9;  // ISO 639 alpha-2 (eg. en)
+  string country_code = 10; // ISO 3166-1 Alpha-2 (eg. GB)
+  repeated common.AcceptedPaymentMethodGroup accepted_payment_method_groups = 11;
+  string gateway_merchant_id = 12;
+  bool expired = 13;
+  bool frozen = 14;
+  bool is_pay_by_bank_accepted = 15;
+  string store_id = 16;
+}
+
+message GetIntegratedPaymentRequest {
+  string payment_id = 1; // from the generated URL
+}
+
+message GetIntegratedPaymentCardTokenRequest {
+  string payment_id = 1; // from the generated URL
+}
+
+message GetIntegratedPaymentCardTokenResponse {
+  string token = 1;
+  string expiry = 2;
+  CardTokenStatus status = 3;
+
+  enum CardTokenStatus {
+    PENDING = 0;
+    FAILED = 1;
+    READY = 2;
+  }
+}
+
+message GetIntegratedPaymentResponse {
+  IntegratedPaymentStatus status = 1;
+  common.Money amount = 2;
+  string description = 3;
+  string store_name = 4;
+  string default_language = 5;  // ISO 639 alpha-2 (eg. en)
+  repeated string supported_languages = 6;  // ISO 639 alpha-2 (eg. en)
+  string country_code = 7; // ISO 3166-1 Alpha-2 (eg. GB)
+  string return_url = 8;
+  bool card_tokenised = 9 [deprecated = true]; // not used
+  string gateway_merchant_id = 10;
+  optional google.protobuf.Timestamp expiry_date = 11;
+  bool is_pay_by_bank_accepted = 12;
+  string store_id = 13;
+  enum IntegratedPaymentStatus {
+    Unpaid = 0;
+    Paid = 1;
+    Failed = 2;
+    Expired = 3;
+  }
+  optional bool tokenise_card = 14; // If true, the integrated payment will attempt to tokenise the card used for the payment.
+}
+message GetPaymentMethodsRequest {
+  string link_id = 1;
+}
+message GetPaymentMethodsResponse {
+  string payment_methods = 1; // base64 encoded json payload from Adyen
+  bool expired = 2;
+  bool frozen = 3;
+}
+message CreatePaymentSessionRequest {
+  string link_id = 1;
+  string shopper_first_name = 2;
+  string shopper_last_name = 3;
+  string shopper_phone = 4;
+  string shopper_email = 5;
+  Address billing_address = 6;
+  Address shipping_address = 7;
+  string payment_method_brand = 8; // use this to find the matching split
+  string payment_method_data = 9; // base64 encoded json payload from drop-in -> "brand"
+  string browser_info = 10; // base 64 encoded json
+  string origin = 11;
+  string country_code = 12; // ISO 3166-1 alpha-2
+  string payment_method_variant = 13; // use this to find the matching split
+  message Address {
+    string house_number_or_name = 1;
+    string street = 2;
+    string city = 3;
+    string postcode = 4;
+    string country = 5;
+  }
+}
+message CreatePaymentSessionResponse {
+  string payment_response = 1; // base64 encoded json payload from Adyen
+  bool expired = 2;
+  bool frozen = 3;
+}
+
+message CompletePaymentSessionRequest {
+  string link_id = 1;
+  string details = 2; // base64 encoded json payload from drop-in, send to Adyen as-is
+}
+message CompletePaymentSessionResponse {
+  string payment_response = 1; // base64 encoded json payload from Adyen
+  optional string success_url = 2; // will include payment-result + unique-reference
+  optional string failure_url = 3; // will include payment-result + unique-reference
+}
+message CreateApplePayRequest {
+  string link_id = 1;
+}
+message CreateApplePayResponse {
+  string response_data = 1; // base 64 encoded merchant session from apple
+}

@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.invoicing.automatedinvoice.v1;
+
+import "options/team.proto";
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AutomatedInvoiceProto";
+option java_package = "com.kodypay.grpc.invoicing.automatedinvoice.v1";
+
+service AutomatedInvoiceService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetPaginatedAutomatedInvoices(GetPaginatedAutomatedInvoicesRequest) returns (GetPaginatedAutomatedInvoicesResponse);
+  rpc UpdateAutomatedInvoice(UpdateAutomatedInvoiceRequest) returns (UpdateAutomatedInvoiceResponse);
+  rpc DeleteAutomatedInvoice(DeleteAutomatedInvoiceRequest) returns (DeleteAutomatedInvoiceResponse);
+  rpc MigrateInvoices(MigrateInvoicesRequest) returns (MigrateInvoicesResponse);
+}
+
+message GetPaginatedAutomatedInvoicesRequest {
+  common.PaginationRequest pagination = 1;
+  string store_id = 2;
+}
+
+message GetPaginatedAutomatedInvoicesResponse {
+  common.PaginationResponse pagination = 1;
+  repeated AutomatedInvoice automated_invoices = 2;
+}
+
+message UpdateAutomatedInvoiceRequest {
+  string invoice_id = 1;
+  optional bool merchant_visible = 2;
+}
+
+message UpdateAutomatedInvoiceResponse {}
+
+message DeleteAutomatedInvoiceRequest {
+  string invoice_id = 1;
+}
+
+message DeleteAutomatedInvoiceResponse {}
+
+message AutomatedInvoice {
+  string invoice_id = 1; // UUID
+  string reference = 2;
+  google.protobuf.Timestamp invoice_date = 3;
+  google.protobuf.Timestamp settled_period_from = 4;
+  google.protobuf.Timestamp settled_period_to = 5;
+  string invoice_balance = 6;
+  bool merchant_visible = 7;
+}
+
+message MigrateInvoicesRequest {
+  string store_id = 1;
+}
+
+message MigrateInvoicesResponse {}

@@ -1,0 +1,270 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.settlement.payout.v1;
+
+import "com/kodypay/grpc/common/time.proto";
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SettlementPayoutProto";
+option java_package = "com.kodypay.grpc.settlement.payout.v1";
+
+service SettlementPayoutService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc FindSettlementPayouts(FindSettlementPayoutsRequest) returns (FindSettlementPayoutsResponse);
+  rpc FindSettlementPayout(FindSettlementPayoutRequest) returns (FindSettlementPayoutResponse);
+  rpc FindSettlementPayoutsWithAggregations(FindSettlementPayoutsWithAggregationsRequest) returns (FindSettlementPayoutsWithAggregationsResponse);
+  rpc FindSettlementPayoutDetails(FindSettlementPayoutDetailsRequest) returns (FindSettlementPayoutDetailsResponse);
+  rpc GetPaginatedSettlementPayouts(GetPaginatedSettlementPayoutsRequest) returns (GetPaginatedSettlementPayoutsResponse);
+  rpc UpdateSettlementPayout(UpdateSettlementPayoutRequest) returns (UpdateSettlementPayoutResponse);
+}
+
+service PublicSettlementPayoutService{
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc KuFindSettlementPayoutDetails(KuFindSettlementPayoutDetailsRequest) returns (KuFindSettlementPayoutDetailsResponse);
+  rpc KuGetPaginatedSettlementPayoutsWithAggregations(KuGetPaginatedSettlementPayoutsWithAggregationsRequest) returns (KuGetPaginatedSettlementPayoutsWithAggregationsResponse);
+  rpc KuGetPaginatedSettlementPayouts(KuGetPaginatedSettlementPayoutsRequest) returns (KuGetPaginatedSettlementPayoutsResponse);
+  rpc KuFindSettlementPayoutsWithAggregations(KuFindSettlementPayoutsWithAggregationsRequest) returns (KuFindSettlementPayoutsWithAggregationsResponse);
+}
+
+message FindSettlementPayoutDetailsRequest {
+  string settlement_payout_id = 1;
+}
+
+message FindSettlementPayoutDetailsResponse {
+  bool legacy_payout = 1; // true if payout is a legacy payout
+  optional SettlementPayoutDetails settlement_payout_details = 2;
+}
+
+message KuFindSettlementPayoutDetailsRequest {
+  string store_id = 1;
+  string settlement_payout_id = 2;
+}
+
+message KuFindSettlementPayoutDetailsResponse {
+  bool legacy_payout = 1; // true if payout is a legacy payout
+  optional SettlementPayoutDetails settlement_payout_details = 2;
+}
+
+message SettlementPayoutDetails {
+  string settlement_payout_id = 1;
+  SettlementPayoutWithAggregations payout_summary = 2;
+  google.protobuf.Timestamp transactions_period_from = 3;
+  google.protobuf.Timestamp transactions_period_to = 4;
+  SettlementDestinationType settlement_destination_type = 5;
+  string settlement_destination_id = 6; // This will either be the id (not balance ID) of the issuing account to allow linking in UI or the id of the transfer instrument
+  repeated Credit credits = 7;
+  repeated Debit debits = 8;
+  repeated Debit outstanding_debits = 9;
+
+  enum SettlementDestinationType {
+    BANK = 0;
+    KODY_WALLET = 1;
+  }
+
+  message Credit {
+    string description = 1;
+    string amount = 2;
+  }
+
+  message Debit {
+    string description = 1;
+    string amount = 2;
+    DebitType type = 3;
+  }
+}
+
+message FindSettlementPayoutRequest {
+  string store_id = 1;
+  string settlement_payout_id = 2;
+}
+
+message FindSettlementPayoutResponse {
+  SettlementPayout settlementPayout = 1;
+}
+
+service SettlementPayoutConfigurationService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc SaveSettlementPayoutConfigurationService(SaveSettlementPayoutConfigurationRequest) returns (SaveSettlementPayoutConfigurationResponse);
+  rpc GetSettlementPayoutConfiguration(GetSettlementPayoutConfigurationRequest) returns (GetSettlementPayoutConfigurationResponse);
+}
+
+message FindSettlementPayoutsRequest {
+  string store_id = 1;
+  optional google.protobuf.Timestamp from = 2;
+  optional google.protobuf.Timestamp to = 3;
+}
+
+message FindSettlementPayoutsResponse {
+  repeated SettlementPayout settlementPayouts = 1;
+}
+
+message SettlementPayout {
+  string id = 1;
+  string configuration_id = 2 [deprecated = true]; // Unused
+  string store_id = 3;
+  string currency = 4;
+  google.protobuf.Timestamp scheduled_at = 5;
+  string amount = 6;
+  PayoutStatus status = 7;
+  optional string external_reference = 8;
+  string settlement_balance_account_id = 9;
+  string destination_id = 10;
+  DestinationType destination_type = 11;
+}
+
+message FindSettlementPayoutsWithAggregationsRequest {
+  string store_id = 1;
+  int32 first = 2;
+  optional google.protobuf.Timestamp before = 3 [deprecated = true];
+  optional google.protobuf.Timestamp created_from = 4;
+  optional google.protobuf.Timestamp created_to = 5;
+}
+
+message FindSettlementPayoutsWithAggregationsResponse {
+  repeated SettlementPayoutWithAggregations settlement_payouts = 1;
+}
+
+message KuFindSettlementPayoutsWithAggregationsRequest {
+  string store_id = 1;
+  int32 first = 2;
+  optional google.protobuf.Timestamp before = 3 [deprecated = true];
+  optional google.protobuf.Timestamp created_from = 4;
+  optional google.protobuf.Timestamp created_to = 5;
+}
+
+message KuFindSettlementPayoutsWithAggregationsResponse {
+  repeated SettlementPayoutWithAggregations settlement_payouts = 1;
+}
+
+message SaveSettlementPayoutConfigurationRequest {
+  SettlementPayoutConfiguration configuration = 1;
+}
+
+message SaveSettlementPayoutConfigurationResponse {
+}
+
+message GetSettlementPayoutConfigurationRequest {
+  string store_id = 1;
+}
+
+message GetSettlementPayoutConfigurationResponse {
+  SettlementPayoutConfiguration configuration = 1;
+}
+
+message SettlementPayoutWithAggregations {
+  string settlement_payout_id = 1;
+  optional google.protobuf.Timestamp date_settled = 2;
+  string carried_from_previous_settlement = 3;
+  string sales = 4;
+  string refunds = 5;
+  string net_sales = 6; // sales - refunds
+  string debits = 7;
+  string credits = 8;
+  string sub_total = 9;
+  string outstanding_debits = 10;
+  string total = 11; // settled
+  string carry_forward_amount = 12;
+  int32 num_of_transactions = 13;
+  string adjustment_total = 14;
+  string store_id = 15;
+  string store_name = 16;
+}
+
+message SettlementPayoutConfiguration {
+  string store_id = 1;
+  string currency = 2;
+  common.Time time = 3;
+  string zone_id = 4;
+  bool enabled = 5;
+  google.protobuf.Timestamp next_run = 6;
+  string destination_id = 7;
+  DestinationType destination_type = 8;
+}
+
+enum PayoutStatus {
+  PENDING = 0;
+  SUCCESS = 1;
+  FAILED = 2;
+}
+
+enum DestinationType {
+  BALANCE_ACCOUNT = 0;
+  TRANSFER_INSTRUMENT = 1;
+}
+
+// majority of these map to Settlement Claim types
+enum DebitType {
+  MonthlySaasFee = 0;
+  MonthlyTransactionFee = 1;
+  Refund = 2;
+  RefundFee = 3;
+  AddonFee = 4;
+  Chargeback = 5;
+  ChargebackFee = 6;
+  MonthlyAddonFee = 7;
+  LoanRepayment = 8;
+  Invoice = 9;
+  ProcessingFee = 10; // not a Claim Type, represents total fees
+  SettlementDebit = 11; // not a Claim Type, represents negative settlement adjustment
+}
+
+message GetPaginatedSettlementPayoutsRequest {
+  string store_id = 1 [deprecated = true]; // see store_ids
+  optional google.protobuf.Timestamp scheduled_date_from = 2;
+  optional google.protobuf.Timestamp scheduled_date_to = 3;
+  int32 first = 4;
+  int32 offset = 5;
+  optional string settlement_payout_id = 6;
+  repeated string store_ids = 7;
+}
+
+message GetPaginatedSettlementPayoutsResponse {
+  repeated SettlementPayout settlement_payouts = 1;
+  common.Pagination pagination = 2;
+}
+
+message KuGetPaginatedSettlementPayoutsRequest {
+  string store_id = 1 [deprecated = true]; // see store_ids
+  optional google.protobuf.Timestamp scheduled_date_from = 2;
+  optional google.protobuf.Timestamp scheduled_date_to = 3;
+  int32 first = 4;
+  int32 offset = 5;
+  optional string settlement_payout_id = 6;
+  repeated string store_ids = 7;
+}
+
+message KuGetPaginatedSettlementPayoutsResponse {
+  repeated SettlementPayout settlement_payouts = 1;
+  common.Pagination pagination = 2;
+}
+
+message KuGetPaginatedSettlementPayoutsWithAggregationsRequest {
+  string store_id = 1   [deprecated = true]; // see store_ids
+  optional google.protobuf.Timestamp scheduled_date_from = 2;
+  optional google.protobuf.Timestamp scheduled_date_to = 3;
+  int32 first = 4;
+  int32 offset = 5;
+  optional string settlement_payout_id = 6;
+  repeated string store_ids = 7;
+}
+
+message KuGetPaginatedSettlementPayoutsWithAggregationsResponse {
+  repeated SettlementPayoutWithAggregations settlement_payouts = 1;
+  common.Pagination pagination = 2;
+}
+
+message UpdateSettlementPayoutRequest {
+  string settlement_payout_id = 1;
+  optional PayoutStatus status = 2;
+}
+
+message UpdateSettlementPayoutResponse {
+  // Empty
+}
+

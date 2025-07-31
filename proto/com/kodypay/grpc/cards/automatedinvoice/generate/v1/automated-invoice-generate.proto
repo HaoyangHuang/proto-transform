@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.cards.automatedinvoice.generate.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "AutomatedInvoiceGenerateProto";
+option java_package = "com.kodypay.grpc.cards.automatedinvoice.generate.v1";
+
+service AutomatedInvoiceGenerateService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GenerateAutomatedInvoice(GenerateAutomatedInvoiceRequest) returns (GenerateAutomatedInvoiceResponse);
+}
+
+message GenerateAutomatedInvoiceRequest {
+  string store_id = 1;
+  string invoice_id = 2;
+  int32 year = 3;
+  int32 month = 4;
+}
+
+message GenerateAutomatedInvoiceResponse {}

@@ -1,0 +1,119 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.organisationsettings.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "OrganisationSettingsProto";
+option java_package = "com.kodypay.grpc.organisationsettings.v1";
+
+service KpOrganisationSettingsService {
+  option (options.team) = BACKEND;
+
+  rpc AdyenOnboardOrganisation(AdyenOnboardOrganisationRequest) returns (OrganisationSettings);
+  rpc GetOrganisationSettings(GetOrganisationSettingsRequest) returns (OrganisationSettings);
+}
+
+message AdyenOnboardOrganisationRequest {
+  string organisation_id = 1;
+  CreateAdyenOrganisationSettingsRequest adyen = 2;
+}
+
+message CreateAdyenOrganisationSettingsRequest {
+  CreateAdyenLegalEntity legal_entity = 1;
+  string time_zone = 2;
+  repeated AdyenCapabilities capabilities = 3;
+}
+
+enum AdyenCapabilities {
+  PAYMENTS = 0;
+  CARD_ISSUING = 2;
+  BUSINESS_ACCOUNTS = 3;
+}
+
+message CreateAdyenLegalEntity {
+  oneof entity {
+    AdyenOrganisation organisation = 1;
+    AdyenSoleProprietorship sole_proprietorship = 2;
+  }
+}
+
+message GetOrganisationSettingsRequest {
+  string organisation_id = 1;
+}
+
+message BalanceAccount {
+  string balance_account_id = 1;
+  AccountType type = 2;
+  string platform_balance_account_id = 3;
+  Platform platform = 4;
+  string time_zone = 5;
+  string currency = 6;
+}
+
+message OrganisationSettings {
+  string organisation_id = 1;
+  AdyenSettings adyen_settings = 2;
+}
+
+message AdyenSettings {
+  AdyenLegalEntity legal_entity = 1;
+  AdyenAccountHolder account_holder = 2;
+  repeated BalanceAccount accounts = 3;
+  repeated AdyenLegalEntity legal_entities = 4;
+}
+
+message AdyenLegalEntity {
+  string legal_entity_id = 1;
+  oneof entityType {
+    AdyenOrganisation organisation = 3;
+    AdyenSoleProprietorship sole_proprietorship = 4;
+  }
+}
+
+message AdyenOrganisation {
+  string legal_name = 1;
+  string country = 2;
+  AdyenOrganisationType type = 3;
+}
+
+message AdyenSoleProprietorship {
+  oneof name {
+    string full_name = 1; // this will be returned back
+    IndividualName name_parts = 4; // we need this when onboarding
+  }
+  string country_of_governing_law = 2;
+  string residential_address_country = 3;
+}
+
+message IndividualName {
+  string firstName = 1;
+  optional string middleName = 2;
+  string lastName = 3;
+}
+
+message AdyenAccountHolder {
+  string account_holder_id = 1;
+}
+
+enum Platform {
+  CHECKOUT = 0;
+  ADYEN = 1;
+}
+
+enum AccountType {
+  ISSUING = 0;
+  ACQUIRING = 1;
+  SETTLEMENT = 2;
+}
+
+enum AdyenOrganisationType {
+  INCORPORATED = 0;
+  GOV = 1;
+  PUBLIC = 2;
+  NON_PROFIT = 3;
+  PARTNERSHIP = 4;
+  PRIVATE = 5;
+}

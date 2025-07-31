@@ -1,0 +1,97 @@
+syntax = "proto3";
+package com.kodypay.grpc.terminals.v1;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/shopper-interaction.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "TwoStepPaymentProto";
+option java_package = "com.kodypay.grpc.terminals.v1";
+
+service TwoStepPaymentService {
+  option (options.team) = PAYMENTS_SERVICES;
+  // gRPC AUTH in header
+  //    POI_ID (the adyen poi/terminal id of the caller)
+  //    TOKEN (the auth token)
+  rpc createPayment (CreatePaymentRequest) returns (CreatePaymentResponse);
+  rpc adjustPayment (AdjustPaymentRequest) returns (AdjustPaymentResponse);
+  rpc capturePayment (CapturePaymentRequest) returns (CapturePaymentResponse);
+  rpc cancelPayment (CancelPaymentRequest) returns (CancelPaymentResponse);
+}
+message CreatePaymentRequest {
+  PaymentDetails payment_details = 1;
+}
+message CreatePaymentResponse {}
+message AdjustPaymentRequest {
+  reserved 2;
+  string psp_reference = 1;
+  common.Money tip = 3;
+}
+message AdjustPaymentResponse {
+  PaymentDetails payment_details = 1;
+}
+message CapturePaymentRequest {
+  string psp_reference = 1;
+  string idempotency_key = 2;
+}
+message CapturePaymentResponse {}
+message CancelPaymentRequest {
+  string psp_reference = 1;
+}
+message CancelPaymentResponse {}
+message PaymentDetails {
+  string psp_reference = 1;
+  common.Money sale_amount = 2;
+  string pan = 3;
+  google.protobuf.Timestamp datetime = 4;
+  PaymentState state = 5;
+  string store_id = 6;
+  string auth_code = 7;
+  string terminal_id = 9;
+  optional common.Money tip = 10;
+  optional common.Money pending_tip = 16;
+  string payment_method = 11; // card scheme or AliPay/WeChatPay
+  string batch_id = 13;
+  string authorisation_data = 14;
+  optional KodyToken kody_token = 15;
+  message KodyToken {
+    string kpToken = 1;
+    google.protobuf.Timestamp expiryDate = 2;
+  }
+  optional common.ShopperInteraction shopper_interaction = 17;
+  optional bool allow_adjustments = 18;
+  bool apply_customer_fx_currency = 19;
+  optional common.Money ccc_calculated_amount = 20;
+  optional string captured_amount =21;
+  optional string fx_adjusted_amount = 25;
+  reserved 26;
+  reserved "issuer_amount";
+  optional string mcc_fee = 28;
+  optional string mcc_fee_pct = 29;
+  optional string mcc_rate = 30;
+  bool is_mcc_flow = 31;
+  optional string mcc_rate_with_markup = 32;
+}
+message RefundDetails {
+  string psp_reference = 1;
+  string payment_psp_reference = 2;
+  google.protobuf.Timestamp datetime = 3;
+  common.Money amount = 4;
+  string store_id = 5;
+  string payment_method = 6;
+  optional string batch_id = 7;
+  optional string terminal_id = 8;
+}
+enum PaymentState {
+  STATE_OPEN = 0;
+  STATE_CAPTURED = 1;
+  STATE_CANCELLED = 2;
+  STATE_CAPTURE_PENDING = 3;
+  STATE_CAPTURE_FAILED = 4;
+  STATE_ADJUSTMENT_PENDING = 5;
+  STATE_ADJUSTMENT_FAILED = 6;
+  STATE_DECLINED = 7;
+  STATE_CAPTURE_PROCESSING = 8;
+}

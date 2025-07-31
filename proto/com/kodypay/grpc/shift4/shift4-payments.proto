@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.shift4;
+
+import "com/kodypay/grpc/common/money.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "Shift4Proto";
+option java_package = "com.kodypay.grpc.shift4";
+
+
+service KpShift4PaymentService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc CreatePayment(SalesPaymentRequest) returns (SalesPaymentResponse);
+  rpc RefundPayment(SalesRefundRequest) returns (SalesRefundResponse);
+  rpc CancelPayment(CancelRequest) returns (CancelResponse);
+  rpc CreateStore(CreateStoreRequest) returns (CreateStoreResponse);
+  rpc GetStore(GetStoreRequest) returns (GetStoreResponse);
+}
+
+message SalesPaymentRequest {
+  string transaction_reference = 1;
+  common.Money sale_amount = 2;
+  optional string tip_amount = 3;
+  string store_id = 4;
+  string terminal_id = 5;
+  optional string order_id = 6;
+  map<string, string> metadata = 7;
+  PaymentMode mode =8;
+  string controller_terminal_id = 9;
+}
+
+enum PaymentMode {
+  AUTO_CAPTURE = 0;
+}
+
+message SalesPaymentResponse {
+  string psp_reference = 1;
+  PaymentStatus status = 2;
+  string payment_date_time = 3;
+  optional ReceiptData receipt = 4;
+  common.Money total_amount = 5;
+}
+
+enum PaymentStatus {
+  PENDING = 0;
+  SUCCESS = 1;
+  FAILED = 2;
+  CANCELLED = 3;
+  EXPIRED = 4;
+  DECLINED = 5;
+  REFUNDED = 6;
+}
+
+message SalesRefundRequest {
+  string transaction_reference = 1;
+  string psp_reference = 2;
+  common.Money amount = 3;
+  string store_id = 4;
+  string terminal_id = 5;
+  map<string, string> metadata = 6;
+  string controller_terminal_id = 7;
+}
+
+message SalesRefundResponse {
+  string refund_reference = 1;
+  string original_reference = 2;
+  PaymentStatus status = 3;
+  string refund_date_time = 4;
+  ReceiptData receipt = 5;
+  common.Money total_amount = 6;
+}
+
+message CancelRequest {
+  string transaction_reference = 1;
+  string store_id = 2;
+  string terminal_id = 3;
+  string controller_terminal_id = 4;
+}
+
+message CancelResponse {
+  string transaction_reference = 1;
+  optional string psp_reference = 2;
+  PaymentStatus status = 3;
+  string payment_date_time = 4;
+  ReceiptData receipt = 5;
+  common.Money total_amount = 6;
+}
+
+message ReceiptData{
+  string scheme = 1;
+  string scheme_variant = 2;
+  string last_four_digits = 3;
+  string expiry_date = 4;
+  map<string, string> additional_data = 5;
+}
+
+message CreateStoreRequest {
+  string store_id = 1;
+  optional string shift4_mid = 2;
+  optional string shift4_mid_name = 3;
+  map<string, string> controller_to_child_terminal = 4;
+  string access_token = 5;
+}
+
+message CreateStoreResponse {
+  StoreResponse store = 1;
+  bool success = 2;
+}
+
+message GetStoreResponse {
+  StoreResponse store = 1;
+}
+
+message GetStoreRequest {
+  string store_id = 1;
+}
+
+message StoreResponse {
+  string store_id = 1;
+  optional string shift4_mid = 2;
+  optional string shift4_mid_name = 3;
+  map<string, string> controller_to_child_terminal = 4;
+  string access_token = 5;
+}
+

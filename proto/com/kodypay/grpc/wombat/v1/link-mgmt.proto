@@ -1,0 +1,249 @@
+syntax = "proto3";
+package com.kodypay.grpc.wombat.v1;
+
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/wombat/v1/common.proto";
+import "com/kodypay/grpc/common/pay-by-link.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "KpLinkMgmtProto";
+option java_package = "com.kodypay.grpc.wombat.v1";
+
+service LinkMgmtService {
+  option (options.team) = PAYMENTS_SERVICES;
+  // Note: API key security on this protocol (header: TOKEN)
+  rpc CreateLink(CreateLinkRequest) returns (LinkDetails);
+  rpc SuspendLink(SuspendLinkRequest) returns (LinkDetails);
+  rpc GetLinkById(GetLinkByIdRequest) returns (LinkDetails);
+  rpc GetLinks(GetLinksRequest) returns (GetLinksResponse);
+  rpc CreateIntegratedPayment(CreateIntegratedPaymentRequest) returns (CreateIntegratedPaymentResponse);
+  rpc GetIntegratedPayment(GetInternalIntegratedPaymentRequest) returns (GetInternalIntegratedPaymentResponse);
+  rpc GetIntegratedPayments(GetInternalIntegratedPaymentsRequest) returns (GetInternalIntegratedPaymentsResponse);
+  rpc GetIntegratedPaymentCardToken(GetInternalIntegratedPaymentCardTokenRequest) returns (GetInternalIntegratedPaymentCardTokenResponse);
+  rpc FreezeUnFreezeLink(FreezeUnFreezeLinkRequest) returns (LinkDetails) {}
+}
+
+message CreateIntegratedPaymentRequest {
+  common.Money amount = 1;
+  string reference = 2;
+  string return_url = 3;
+  optional string order_id = 4;
+  optional string order_metadata = 5;
+  string store_id = 6;
+  optional string payer_statement = 7;
+  optional string payer_email_address = 8;
+  optional string payer_ip_address = 9;
+  optional string payer_locale = 10;
+  optional bool tokenise_card = 11;
+  optional ExpirySettings expiry = 13;
+  optional string platform_fee_rate = 14; //BigDecimal 1.5 = 1.5% default value = 0.00
+  optional string platform_fee_amount = 15; //default value is 0
+  optional bool is_pay_by_bank_accepted = 16;
+  optional string shopper_reference = 17; //The shopper reference used for the payment, will be used to match tokenised payment methods, should be a unique identifier, if applicable.
+  optional RecurringProcessingModel recurring_processing_model = 18; // The recurring model to use for the payment, if applicable. Can be 'Subscription', 'UnscheduledCardOnFile' or 'CardOnFile'.
+
+
+  message ExpirySettings {
+    bool show_timer = 1;
+    uint64 expiring_seconds = 2;
+  }
+
+  enum RecurringProcessingModel {
+    UNSPECIFIED = 0;  // Default value, not set
+    CARD_ON_FILE = 1; // Card on file model
+    SUBSCRIPTION = 2; // Subscription model
+    UNSCHEDULED_CARD_ON_FILE = 3; // Unscheduled card on file model
+  }
+}
+
+message CreateIntegratedPaymentResponse {
+  oneof result {
+    Response response = 1;
+    Error error = 2;
+  }
+
+  message Response {
+    string payment_id = 1;
+    string payment_url = 2;
+  }
+
+  message Error {
+    Type type = 1;
+    string message = 2;
+
+    enum Type {
+      UNKNOWN = 0;
+      DUPLICATE_ATTEMPT = 1;
+      INVALID_REQUEST = 2;
+    }
+  }
+}
+
+message GetInternalIntegratedPaymentsRequest {
+  string store_id = 1;
+  // can be used to make pagination stable
+  // after first request, pass up the created date of the first entry
+  // then if a new payment occurs during page traversal, it will be ignored
+  optional google.protobuf.Timestamp created_before = 2;
+  int64 page = 3;
+  int64 page_size = 4;
+  optional string order_id = 5;
+}
+
+message GetInternalIntegratedPaymentsResponse {
+  oneof result {
+    PagedResponse response = 1;
+    Error error = 2;
+  }
+
+  message IntegratedPayment {
+    string payment_id = 1;
+    string payment_reference = 2;
+    string order_id = 3;
+    optional string order_metadata = 4;
+    PaymentStatus status = 5;
+    optional string payment_data_json = 6;
+
+    google.protobuf.Timestamp date_created = 7;
+    optional google.protobuf.Timestamp date_paid = 8;
+
+    enum PaymentStatus {
+      PENDING = 0;
+      SUCCESS = 1;
+      FAILED = 2;
+      CANCELLED = 3;
+      EXPIRED = 4;
+    }
+  }
+
+  message PagedResponse {
+    repeated IntegratedPayment payments = 1;
+    int64 total = 2;
+  }
+
+  message Error {
+    Type type = 1;
+    string message = 2;
+
+    enum Type {
+      UNKNOWN = 0;
+      NOT_FOUND = 1;
+      INVALID_ARGUMENT = 2;
+    }
+  }
+}
+
+message GetInternalIntegratedPaymentRequest {
+  string store_id = 1;
+  oneof payment_identifier {
+    string payment_id = 2;
+    string payment_reference = 3;
+  }
+}
+
+message GetInternalIntegratedPaymentCardTokenRequest {
+  string store_id = 1;
+  oneof payment_identifier {
+    string payment_id = 2;
+    string payment_reference = 3;
+  }
+}
+
+message GetInternalIntegratedPaymentCardTokenResponse {
+  string token = 1;
+  string expiry = 2;
+  CardTokenStatus status = 3;
+
+  enum CardTokenStatus {
+    PENDING = 0;
+    FAILED = 1;
+    READY = 2;
+  }
+}
+
+message GetInternalIntegratedPaymentResponse {
+  oneof result {
+    Response response = 1;
+    Error error = 2;
+  }
+
+  message Response {
+    string payment_id = 1;
+    string payment_reference = 2;
+    string order_id = 3;
+    optional string order_metadata = 4;
+    PaymentStatus status = 5;
+    optional string payment_data_json = 6;
+
+    google.protobuf.Timestamp date_created = 7;
+    optional google.protobuf.Timestamp date_paid = 8;
+    optional string psp_reference = 9;
+    string currency_code = 10;
+
+    enum PaymentStatus {
+      PENDING = 0;
+      SUCCESS = 1;
+      FAILED = 2;
+      CANCELLED = 3;
+      EXPIRED = 4;
+    }
+  }
+
+  message Error {
+    Type type = 1;
+    string message = 2;
+
+    enum Type {
+      UNKNOWN = 0;
+      NOT_FOUND = 1;
+      INVALID_ARGUMENT = 2;
+    }
+  }
+
+}
+
+message CreateLinkRequest {
+  reserved 8;
+  string store_id = 1;
+  string store_name = 2;
+  string description = 3;
+  google.protobuf.Timestamp expires_at = 4;
+  common.LinkType type = 5;
+  repeated LinkPrompt prompts = 6;
+  common.Money amount = 7;
+  repeated common.AcceptedPaymentMethodGroup accepted_payment_method_groups = 9;
+}
+message SuspendLinkRequest {
+  string link_id = 1;
+}
+
+message FreezeUnFreezeLinkRequest {
+  string link_id = 1;
+  LinkStatus status = 2;
+}
+message GetLinkByIdRequest {
+  string link_id = 1;
+}
+message GetLinksRequest {
+  string store_id = 1;
+  repeated string link_id_in = 2;
+}
+message GetLinksResponse {
+  repeated LinkDetails links = 1;
+}
+message LinkDetails {
+  reserved 11;
+  string link_id = 1;
+  string store_id = 2;
+  string store_name = 3;
+  string description = 4;
+  google.protobuf.Timestamp expires_at = 5;
+  common.LinkType type = 6;
+  repeated LinkPrompt prompts = 7;
+  common.Money amount = 8;
+  LinkStatus status = 9;
+  string url = 10;
+  repeated common.AcceptedPaymentMethodGroup accepted_payment_method_groups = 12;
+}

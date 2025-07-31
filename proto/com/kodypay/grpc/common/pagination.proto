@@ -1,0 +1,24 @@
+syntax = "proto3";
+package com.kodypay.grpc.common;
+import "google/protobuf/timestamp.proto";
+option java_package = "com.kodypay.grpc.common";
+option java_multiple_files = true;
+option java_outer_classname = "KpCommonPaginationProto";
+
+message Pagination {
+  int32 first = 1;
+  int32 offset = 2;
+  int32 total = 3;
+  optional google.protobuf.Timestamp pagedBefore = 4;
+}
+
+message PaginationRequest {
+  int32 offset = 1;
+  int32 limit = 2;
+}
+
+message PaginationResponse {
+  int32 offset = 1;
+  int32 limit = 2;
+  int32 total = 3;
+}

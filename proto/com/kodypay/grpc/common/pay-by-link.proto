@@ -1,0 +1,19 @@
+syntax = "proto3";
+package com.kodypay.grpc.common;
+option java_package = "com.kodypay.grpc.common";
+option java_multiple_files = true;
+option java_outer_classname = "KpCommonPayByLinkProto";
+
+enum AcceptedPaymentMethodGroup {
+  STANDARD_CARDS = 0;
+  AMEX = 1;
+  E_WALLETS = 2;
+  PAY_BY_BANK = 3;
+}
+
+enum LinkType {
+  MULTIPLE = 0;
+  SINGLE = 1;
+  SINGLE_DEPOSIT = 2;
+  MULTIPLE_DEPOSIT = 3;
+}

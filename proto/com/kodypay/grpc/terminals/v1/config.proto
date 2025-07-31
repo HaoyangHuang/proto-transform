@@ -1,0 +1,225 @@
+syntax = "proto3";
+package com.kodypay.grpc.terminals.v1;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/paybybank/paybybank.proto";
+import "com/kodypay/grpc/fx/fx.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "ConfigProto";
+option java_package = "com.kodypay.grpc.terminals.v1";
+// gRPC AUTH types:
+// a2: in payload (adyen poi id & token)
+// a3: (AUTH v2) with app_auth_token in payload
+// a4: in header
+//    POI_ID (the adyen poi id of the caller)
+//    TOKEN (the auth token)
+service ConfigService {
+    option (options.team) = PAYMENTS_SERVICES;
+
+    rpc Auth (AuthRequest) returns (AuthResponse) {} // AUTH a2 ("AUTH V2")
+    rpc Get (ConfigRequest) returns (ConfigResponse) {} // AUTH a2
+    rpc UpdateTipsEnabled (UpdateTipsEnabledRequest) returns (UpdateTipsEnabledResponse) {} // AUTH a2
+    rpc CreateTipOption (CreateTipOptionRequest) returns (CreateTipOptionResponse) {} // AUTH a2
+    rpc DeleteTipOption (DeleteTipOptionRequest) returns (DeleteTipOptionResponse) {} // AUTH a2
+    rpc UpdateTipOption (UpdateTipOptionRequest) returns (UpdateTipOptionResponse) {} // AUTH a2
+    rpc PingV2 (PingRequest) returns (PingResponse) {} // AUTH a4
+    rpc UpdateEndOfDayTime (UpdateEndOfDayTimeRequest) returns (UpdateEndOfDayTimeResponse) {} // AUTH a4
+    rpc EnableReceiptsAutoPrint (ReceiptsAutoPrintEnabledRequest) returns (ReceiptsAutoPrintEnabledResponse) {} // AUTH a4
+}
+message PingRequest {
+    string adyen_poi_id = 1;
+    string installed_version = 2; // can be empty except on initial
+    Type type = 3;
+    enum Type {
+        DEFAULT = 0;
+        INITIAL = 1; // first message after wake up
+        LAST = 2; // last message before sleep
+    }
+}
+message PingResponse {
+    string adyen_poi_id = 1;
+    int32 config_version = 2;
+    string minimum_version = 3; // the terminal should stop working if it doesn't have at least this version
+}
+message AuthRequest {
+    string adyen_poi_id = 1;
+    string app_auth_token = 2;
+}
+message AuthResponse {
+    string token = 1;
+    Key key = 2;
+    string merchant_account = 3;
+}
+message ConfigRequest {
+    string adyen_poi_id = 1;
+    string token = 2;
+}
+message ConfigResponse {
+    string adyen_sale_id = 1;
+    Key key = 2;
+    Store store = 3;
+    int32 config_version = 4;
+    google.protobuf.Timestamp last_updated = 6;
+    string terminal_name = 7;
+    string acq_fees_token = 8;
+    string currency_code = 9; // ISO 4217 (eg. GBP)
+    string country_code = 10; // ISO 3166-1 Alpha-2 (eg. GB)
+    string timezone_id = 11; // IANA timezone (eg. Europe/London)
+    string default_language = 12; // ISO 639 alpha-2 (eg. en)
+    repeated string supported_languages = 13; // ISO 639 alpha-2 (eg. en)
+    string checkout_dot_com_key = 14;
+    repeated string payment_methods = 15; // list of payment method names to show in payment screen
+    paybybank.Config pay_by_bank_config = 16; // config from pay-by-bank service
+    reserved 17;
+    OrderedFxRates fx_rates = 18 [deprecated = true];
+    string ccc_fee_rate = 19; // example 0.06 (for 6%)
+    string mcc_fee_rate = 20 [deprecated = true]; // multi currency conversion fee rate example 0.03 (for 3%)
+    repeated SupportedCurrencies mcc_supported_currencies = 21; // supported currencies per payment method and country
+}
+
+message SupportedCurrencies {
+    PaymentMethod payment_method = 1;
+    repeated string currencies = 2;
+}
+
+message OrderedFxRates {
+    string base_currency = 1;
+    map<string, OrderedFxRate> rates = 2;
+    message OrderedFxRate {
+        int32 order = 1;
+        string value = 2;
+    }
+}
+message UpdateTipsEnabledRequest {
+    string adyen_poi_id = 1;
+    string token = 2;
+    bool tips_enabled = 3;
+}
+message UpdateTipsEnabledResponse {
+    string adyen_poi_id = 1;
+    bool tips_enabled = 2;
+}
+message UpdateEndOfDayTimeRequest {
+    string end_of_day_time = 1;
+}
+message UpdateEndOfDayTimeResponse {
+    string end_of_day_time = 1;
+}
+message ReceiptsAutoPrintEnabledRequest {
+    string auto_print_enabled = 1;
+}
+message ReceiptsAutoPrintEnabledResponse {
+    string is_updated = 1;
+}
+message CreateTipOptionRequest {
+    string adyen_poi_id = 1;
+    string token = 2;
+    repeated TipOption tip_options = 3;
+}
+message CreateTipOptionResponse {
+    bool isCreated = 1;
+}
+message DeleteTipOptionRequest {
+    string adyen_poi_id = 1;
+    string token = 2;
+    int32 display_order = 3;
+}
+message DeleteTipOptionResponse {
+    bool isDeleted = 1;
+}
+message UpdateTipOptionRequest {
+    string adyen_poi_id = 1;
+    string token = 2;
+    TipOption tipOption = 3;
+}
+message UpdateTipOptionResponse {
+    bool isUpdated = 1;
+}
+message Key {
+    string id = 1;
+    string passphrase = 2;
+    int32 version = 3;
+}
+message Store {
+    string id = 1;
+    string name = 2;
+    string kody_account_number = 3;
+    string merchant_account_number = 4;
+    repeated Role roles = 5;
+    repeated SplitOption split_options = 6;
+    repeated TipOption tip_options = 7;
+    bool tips_enabled = 8;
+    bool moto_enabled = 9;
+    Platform platform = 10;
+    string classic_transaction_number = 11;
+    string shopperStatement = 12;
+    string receipt_header = 13;
+    string endOfDayTime = 14; // HH:MM
+    AutoPrintOption auto_print = 15;
+    repeated Feature features = 16;
+    Screen initial_screen = 17;
+    message Role {
+        string key = 1;
+        string name = 2;
+        string pin = 3;
+    }
+    message SplitOption {
+        enum Currency {
+            ANY = 0;
+            GBP = 1;
+        }
+        string percentage = 1;
+        string fixed = 2;
+        PaymentMethod payment_method = 3;
+        Currency currency = 4;
+        bool is_moto = 5;
+        string payment_method_code = 6;
+    }
+    enum Platform {
+        CLASSIC = 0;
+        BALANCE = 1;
+    }
+    enum Screen {
+        KEYPAD = 0;
+        ORDERS = 1;
+    }
+}
+message TipOption {
+    TipOptionType type = 1;
+    string value = 2;
+    int32 display_order = 3;
+}
+enum TipOptionType {
+    TIP_OPTION_TYPE_CUSTOM_UNSPECIFIED = 0;
+    TIP_OPTION_TYPE_FIXED_VALUE = 1;
+    TIP_OPTION_TYPE_PERCENTAGE = 2;
+}
+enum AutoPrintOption {
+    NONE = 0;
+    MERCHANT = 1;
+    MERCHANT_AND_CUSTOMER = 2;
+}
+message Feature {
+    string key = 1;
+    string value = 2;
+}
+enum PaymentMethod {
+    ANY = 0;
+    VISA = 1;
+    MC = 2;
+    AMEX = 3;
+    BCMC = 4;
+    CUP = 5;
+    MAESTRO = 6;
+    DINERS = 7;
+    DISCOVER = 8;
+    JCB = 9;
+    ALIPAY = 10;
+    WECHATPAY = 11;
+    VPAY = 12;
+}
+message ErrorResponse {
+    string code = 1;
+    string message = 2;
+}

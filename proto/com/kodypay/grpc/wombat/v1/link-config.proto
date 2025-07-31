@@ -1,0 +1,73 @@
+syntax = "proto3";
+package com.kodypay.grpc.wombat.v1;
+
+import "com/kodypay/grpc/common/singularity.proto";
+import "com/kodypay/grpc/wombat/v1/common.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "KpLinkConfigProto";
+option java_package = "com.kodypay.grpc.wombat.v1";
+
+service LinkConfigService {
+  option (options.team) = PAYMENTS_SERVICES;
+  // Note: API key security on this protocol
+  rpc GetLinkConfig(GetLinkConfigRequest) returns (LinkConfig);
+  rpc SetLinkConfig(SetLinkConfigRequest) returns (LinkConfig);
+  rpc GetPaymentConfig(GetPaymentConfigRequest) returns (PaymentConfig);
+  rpc SetPaymentConfig(SetPaymentConfigRequest) returns (PaymentConfig);
+  rpc SetLinkDefaults(SetLinkDefaultsRequest) returns (LinkDefaults);
+  rpc GetLinkDefaults(GetLinkDefaultsRequest) returns (LinkDefaults);
+}
+
+message GetLinkConfigRequest {
+  string store_id = 1;
+}
+
+message SetLinkConfigRequest {
+  string store_id = 1;
+  string brand_id = 2;
+}
+
+message LinkConfig {
+  string brand_id = 2;
+}
+
+message GetPaymentConfigRequest {
+  string store_id = 1;
+}
+message SetPaymentConfigRequest {
+  string store_id = 1;
+  double threeds = 2;
+}
+message PaymentConfig {
+  double threeds_threshold = 1; //set to a negative value will disable forced 3DS. 0 or positive will force 3DS if the payment amount is equals or more than the threshold
+}
+
+message SetLinkDefaultsRequest {
+  string store_id = 1;
+  LinkDefaults defaults = 2;
+}
+message GetLinkDefaultsRequest {
+  string store_id = 1;
+}
+message LinkDefaults {
+  repeated NotificationRecipient notification_recipients = 2;
+  bool collect_name = 3;
+  bool collect_phone = 4;
+  bool collect_email = 5;
+  bool collect_billing_address = 6;
+  bool collect_shipping_address = 7;
+  message NotificationRecipient {
+    oneof value {
+      string email = 1;
+      string phone_number = 2;
+    }
+  }
+  bool is_expiry_editable = 8;
+  int32 expiry_days = 9;
+  common.Singularity payment_link_type = 10;
+  int32 failed_payment_threshold = 11;
+
+}
+

@@ -1,0 +1,179 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.loyalty.campaigns.v1;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "CampaignsProto";
+option java_package = "com.kodypay.grpc.loyalty.campaigns.v1";
+
+service CampaignsService {
+  option (options.team) = SOFTWARE_SERVICES;
+
+  rpc CreateCampaign(CreateCampaignRequest) returns (CreateCampaignResponse);
+  rpc GetCampaigns(GetPaginatedCampaignsRequest) returns (GetPaginatedCampaignsResponse);
+  rpc GetReservedCampaignDates(GetReservedCampaignDatesRequest) returns (GetReservedCampaignDatesResponse);
+  rpc GetCampaign(GetCampaignRequest) returns (GetCampaignResponse);
+  rpc DeleteCampaign(DeleteCampaignRequest) returns (DeleteCampaignResponse);
+  rpc EnableLoyalty(EnableLoyaltyRequest) returns (EnableLoyaltyResponse);
+  rpc IsLoyaltyEnabled(IsLoyaltyEnabledRequest) returns (IsLoyaltyEnabledResponse);
+  rpc EndCampaign(EndCampaignRequest) returns (EndCampaignResponse);
+}
+
+enum CampaignStatus {
+  ACTIVE = 0;
+  SCHEDULED = 1;
+  CLOSED = 2; // The campaign is over, but customers can still redeem offers
+  ENDED = 3; // The campaign is over, customers can no longer redeem offers
+}
+
+message OfferInsights {
+  int32 issued = 1; // Number of offers issued
+  int32 redeemed = 2; // Number of offers redeemed
+  int32 expired = 3; // Number of offers expired
+  int32 unused = 4; // Number of offers unused
+}
+
+message CustomerInsights {
+  int32 returned = 1; // Number of customers who returned
+  string return_sales = 2; // Total sales from customers who returned
+  string total_discount = 3; // Total amount of discount given
+  optional string return_atv = 4; // Average transaction value of all sales
+}
+message RedemptionDetails {
+  repeated int32 week_days = 1; // selected weekdays in an array of integers starting from monday to sunday
+  google.protobuf.Timestamp start_date = 2; // start Date, in UTC
+  google.protobuf.Timestamp end_date = 3; // end Date, in UTC
+  optional string start_time = 4; // start time  in a "01:00" format
+  optional string end_time = 5; //  end time in a "01:00" format
+  optional bool all_day = 6;
+}
+
+message Campaign {
+  string id = 1;
+  string store_id = 2;
+  string name = 3;
+  CampaignStatus status = 4;
+  google.protobuf.Timestamp last_offer_valid_until = 5;
+  TargetCustomers target_customers = 6;
+  OfferSchema offer_schema = 7;
+  optional Conditions conditions = 8;
+  google.protobuf.Timestamp campaign_from = 9; // in UTC
+  google.protobuf.Timestamp campaign_to = 10; // in UTC
+  bool redeem_multiple_rewards = 11;
+}
+message TargetCustomers {
+  oneof target_type {
+    int32 target_days = 1; // Target customers who have not transacted in the last x days
+    bool target_all = 2; // Target all customers
+  }
+}
+
+message OfferSchema {
+  oneof offer_type {
+    common.Money offer_fixed_amount = 1; // Fixed amount offer, the amount to be deducted from the total
+    int32 offer_percentage_amount = 2; // Percentage amount offer, the percentage to be deducted from the total
+  }
+}
+
+message Conditions {
+  optional common.Money conditions_minimal_spend = 1;
+  int32 conditions_must_return_within = 2;
+}
+
+message CreateCampaignRequest {
+  string store_id = 1;
+  string name = 2;
+  google.protobuf.Timestamp period_start_date = 3; // Start date of the campaign (at midnight, in UTC)
+  int32 period_duration = 4; // Duration of the campaign in days
+  optional int32 target_days = 5;
+  OfferSchema offer_schema = 6;
+  Conditions conditions = 7;
+  RedemptionDetails redemption_period = 8;
+  repeated RedemptionDetails non_redemption_periods = 9;
+  string timezone_id = 10;
+  bool redeem_multiple_rewards = 11;
+}
+message CreateCampaignResponse {
+  oneof response {
+    Campaign campaign = 1;
+    CreateCampaignClashError clash_error = 2;
+  }
+}
+
+message CreateCampaignClashError {
+  string name = 1;  // Name of clashing campaign
+  google.protobuf.Timestamp from = 2; // Start date of clashing campaign
+  google.protobuf.Timestamp to = 3; // End date of clashing campaign
+}
+
+message GetPaginatedCampaignsRequest {
+  string store_id = 1;
+  repeated CampaignStatus statuses = 2;
+  int32 first = 3;
+  int32 offset = 4;
+}
+
+message GetPaginatedCampaignsResponse {
+  repeated Campaign campaigns = 1;
+  common.Pagination pagination = 2;
+}
+
+message GetCampaignRequest {
+  string campaign_id = 1;
+  string store_id = 2;
+}
+
+message GetCampaignResponse {
+  Campaign campaign = 1;
+  OfferInsights offer_insights = 2;
+  CustomerInsights customer_insights = 3;
+}
+
+message DeleteCampaignRequest {
+  string store_id = 1;
+  string campaign_id = 2;
+}
+
+message DeleteCampaignResponse {
+}
+
+// Sent when merchant taps the "Start rewarding customers" button to enable loyalty for the merchant
+message EnableLoyaltyRequest {
+  string store_id = 1;
+}
+
+message EnableLoyaltyResponse {}
+
+// Request to check if the merchant has enabled loyalty
+message IsLoyaltyEnabledRequest {
+  string store_id = 1;
+}
+
+message IsLoyaltyEnabledResponse {
+  bool enabled = 1;
+}
+
+message EndCampaignRequest {
+  string store_id = 1;
+  string campaign_id = 2;
+  // If `keep_offers` is true, customers with valid offers can continue to redeem them.
+  // If `keep_offers` is false, customers' valid offers will be voided and will no longer appear on the terminal.
+  bool keep_offers = 3;
+}
+
+message EndCampaignResponse {
+  Campaign campaign = 1;
+}
+
+message GetReservedCampaignDatesRequest{
+  string store_id = 1;
+}
+
+message GetReservedCampaignDatesResponse{
+  repeated google.protobuf.Timestamp used_campaign_dates = 1;
+}
+

@@ -1,0 +1,82 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.accounts.v1;
+
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "BusinessAccountsProto";
+option java_package = "com.kodypay.grpc.banking.accounts.v1";
+
+service KpBusinessAccountsService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc InitSecureTransfer(InitSecureTransferRequest) returns (InitSecureTransferResponse); // mobile app only
+  rpc FinalizeSecureTransfer(FinalizeSecureTransferRequest) returns (FinalizeSecureTransferResponse); // mobile app only
+  rpc SendToThirdParty(SendToThirdPartyRequest) returns (SendToThirdPartyResponse); // KU only
+  rpc CancelPendingTransfer(CancelPendingTransferRequest) returns (CancelPendingTransferResponse); // KU only
+}
+
+message InitSecureTransferRequest {
+  string transfer_id = 1;
+  string token = 2;
+}
+message InitSecureTransferResponse {
+  string transfer_id = 1;
+  string response_token = 2;
+}
+
+message FinalizeSecureTransferRequest {
+  string transfer_id = 1;
+  string token = 2;
+}
+message FinalizeSecureTransferResponse {
+  string transfer_id = 1;
+  string amount = 2;
+  ThirdPartyBeneficiary beneficiary = 3;
+}
+
+message SendToThirdPartyRequest {
+  string bank_account_id = 1; //this is the bank_account_id associated to a balance_account as received in accounts APIs
+  oneof payee {
+    string payee_id = 2; // from payee API (payee chunk 1)
+    ThirdPartyBeneficiary beneficiary = 5; // will be deprecated with payee chunk 1
+  }
+  string amount = 3;
+  optional string reference = 4;
+}
+message SendToThirdPartyResponse {
+  string transfer_id = 1;
+  string amount = 2;
+  string reference = 3;
+  ThirdPartyBeneficiary beneficiary = 4 [deprecated = true]; // will be deprecated with payee chunk 1
+  TransferApprover approver = 5;
+}
+message TransferApprover {
+  string id = 1;
+  string full_name = 2;
+}
+
+message ThirdPartyBeneficiary { // will be deprecated with payee chunk 1
+  optional string beneficiary_id = 1;
+  string name = 2;
+  BankAccount bank_account = 3;
+}
+message BankAccount { // will be deprecated with payee chunk 1
+  oneof type {
+    UkBankAccount uk = 1;
+    IbanBankAccount iban = 2;
+  }
+}
+message UkBankAccount { // will be deprecated with payee chunk 1
+  string sort_code = 1;
+  string account_number = 2;
+}
+message IbanBankAccount { // will be deprecated with payee chunk 1
+  string iban_number = 1;
+}
+
+message CancelPendingTransferRequest {
+  string transfer_id = 1;
+}
+message CancelPendingTransferResponse { }

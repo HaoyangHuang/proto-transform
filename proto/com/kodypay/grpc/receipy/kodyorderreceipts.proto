@@ -1,0 +1,80 @@
+syntax = "proto3";
+package com.kodypay.grpc.receipy;
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_package = "com.kodypay.grpc.receipy";
+option java_multiple_files = true;
+option java_outer_classname = "KpReceipyKodyOrderReceipts";
+
+service KodyOrderReceipts {
+  option (options.team) = SOFTWARE_SERVICES;
+  rpc CreateKodyOrderReceipt(CreateKodyOrderReceiptRequest) returns (CreateKodyOrderReceiptResponse);
+  rpc CreateMultiStoreReceipt(CreateMultiStoreReceiptRequest) returns (CreateMultiStoreReceiptResponse);
+}
+
+message CreateMultiStoreReceiptRequest{
+  string pspReference = 1;
+  StoreOrderDetails parent_store_order_details = 2;
+  repeated StoreOrderDetails child_store_orders_details = 3;
+  optional string customer_language_setting = 4;
+}
+
+message CreateMultiStoreReceiptResponse{
+  string download_link = 1;
+}
+
+message StoreOrderDetails {
+  StoreDetails store_details = 1;
+  OrderDetails order_details = 2;
+  repeated OrderItem order_items = 3;
+  Totals totals = 4;
+}
+
+message CreateKodyOrderReceiptRequest {
+  string pspReference = 1; // not UUID
+  StoreDetails store_details = 2;
+  OrderDetails order_details = 3;
+  repeated OrderItem order_items = 4;
+  Totals totals = 5;
+  optional string customer_language_setting = 6;
+
+}
+message StoreDetails {
+  string id = 1; // UUID
+  string name = 2;
+  string address = 3;
+  string currency_code = 4;
+}
+message OrderDetails {
+  string id = 1; // restaurant_order_id, UUID
+  string number = 2;
+  string table_number = 3;
+  google.protobuf.Timestamp created_at = 4;
+  string customer_name = 5;
+  optional string order_note = 6;
+  string created_at_zone_offset_id = 7;
+}
+message OrderItem {
+  string name = 1;
+  string price = 2;
+  string quantity = 3;
+  repeated Addon addon = 4;
+
+  message Addon {
+    string name = 1;
+    string price = 2;
+    string quantity = 3;
+  }
+}
+message Totals {
+  string service_charge = 1;
+  string net_total = 2;
+  string vat = 3;
+  string total_amount = 4;
+  string platform_fee_amount = 5;
+}
+
+message CreateKodyOrderReceiptResponse {
+  string download_link = 1;
+}

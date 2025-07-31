@@ -1,0 +1,128 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.acquiringfees;
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/payment-channel.proto";
+import "com/kodypay/grpc/acquiring-fees/fees.proto";
+import "options/team.proto";
+
+option java_package = "com.kodypay.grpc.acquiringfees";
+option java_multiple_files = true;
+option java_outer_classname = "KpFeeUse";
+
+service FeeService {
+  option (options.team) = INTERNAL_SERVICES;
+  // security by app token
+  rpc GetFee(GetFeeRequest) returns (GetFeeResponse);
+  rpc GetAdyenSplit(GetAdyenSplitRequest) returns (GetAdyenSplitResponse) {option deprecated = true;}; // Adyen splits no longer used
+  rpc GetRefundFee(GetRefundFeeRequest) returns (GetRefundFeeResponse) {option deprecated = true;};
+  rpc GetPaymentFee(GetPaymentFeeRequest) returns (GetPaymentFeeResponse) {option deprecated = true;};
+  rpc GetPaymentFees(GetPaymentFeesRequest) returns (GetPaymentFeesResponse);
+}
+message GetFeeRequest {
+  string store_id = 1; // UUID
+  common.PaymentChannel channel = 2;
+  string payment_brand = 3;
+  string payment_method_variant = 4;
+  string payment_method_country_code = 5; // ISO 3166-1 alpha-2
+  common.Currency currency = 6;
+  string store_country_code = 7; // ISO 3166-1 alpha-2
+  optional string payment_method_funding_source = 8;
+  Acquirer acquirer = 9;
+}
+message GetFeeResponse {
+  Rate rate = 1;
+}
+message GetAdyenSplitRequest {
+  reserved 3, 9;
+  string store_id = 1;
+  common.Money amount = 2;
+  common.PaymentChannel channel = 4;
+  string payment_brand = 5;
+  string payment_method_variant = 6;
+  string payment_method_country_code = 7; // ISO 3166-1 alpha-2
+  string store_country_code = 8; // ISO 3166-1 alpha-2
+  optional string payment_method_funding_source = 10;
+}
+message GetAdyenSplitResponse {
+  reserved 3, 4;
+  optional AdyenSplit kody_part = 1;
+  optional AdyenSplit merchant_part = 2;
+  optional AdyenSplit adyen_fee = 5;
+  string rate_group_id = 6 [deprecated = true]; // UUID
+  string kody_fees = 7 [deprecated = true]; // BigDecimal
+  string details = 8 [deprecated = true]; // human readable fee, i.e. "1,5%,GBP1.00" or similar
+  Rate rate = 9 [deprecated = true];
+  string rate_group_name = 10 [deprecated = true];
+  bool is_domestic = 11 [deprecated = true];
+  bool is_instant = 12 [deprecated = true];
+  string metadata_message = 13; // base64 encoded message proto 'AcquiringFees'
+}
+message AdyenSplit {
+  common.Money amount = 1;
+  string reference = 2;
+  string account = 3;
+  string description = 4;
+  string type = 5;
+}
+message GetRefundFeeRequest {
+  string store_id = 1;
+  common.Money amount = 2;
+  common.PaymentChannel channel = 4;
+  string payment_brand = 5;
+  string payment_method_variant = 6;
+  string payment_method_country_code = 7; // ISO 3166-1 alpha-2
+  string store_country_code = 8; // ISO 3166-1 alpha-2
+  common.Currency currency = 9;
+  optional string payment_method_funding_source = 10;
+}
+message GetRefundFeeResponse {
+  Rate rate = 1;
+  common.Money kody_fee = 2;
+  string rate_group_id = 3; // UUID
+  string rate_group_name = 4;
+  bool is_domestic = 5;
+  string discount = 6; // BigDecimal
+}
+message GetPaymentFeeRequest {
+  string store_id = 1;
+  common.Money amount = 2;
+  common.PaymentChannel channel = 3;
+  string payment_brand = 4;
+  string payment_method_variant = 5;
+  string payment_method_country_code = 6; // ISO 3166-1 alpha-2
+  string store_country_code = 7; // ISO 3166-1 alpha-2
+  common.Currency currency = 8;
+  optional string payment_method_funding_source = 9;
+}
+message GetPaymentFeeResponse {
+  Rate rate = 1;
+  common.Money kody_fee = 2;
+  string rate_group_id = 3; // UUID
+  string rate_group_name = 4;
+  bool is_domestic = 5;
+  string discount = 6; // BigDecimal
+}
+message GetPaymentFeesRequest {
+  string store_id = 1;
+  common.Money amount = 2;
+  common.PaymentChannel channel = 3;
+  string payment_brand = 4;
+  string payment_method_variant = 5;
+  string payment_method_country_code = 6; // ISO 3166-1 alpha-2
+  string store_country_code = 7; // ISO 3166-1 alpha-2
+  optional string payment_method_funding_source = 8;
+  Acquirer acquirer = 9;
+  bool is_refund = 10;
+}
+message GetPaymentFeesResponse {
+  Rate rate = 1;
+  common.Money kody_fee = 2;
+  string rate_group_id = 3; // UUID
+  string rate_group_name = 4;
+  bool is_domestic = 5;
+  CalculationMethod calculation_method = 6;
+  string pricing_model_id = 7; // UUID
+  string store_pricing_model_id = 8; // UUID
+  optional Rate refund_rate = 9; // only populated for refunds and could be null
+}

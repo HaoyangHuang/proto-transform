@@ -1,0 +1,40 @@
+syntax = "proto3";
+package com.kodypay.grpc.auth.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "TasksProto";
+option java_package = "com.kodypay.grpc.auth.v1";
+
+service TaskService {
+  option(options.team) = BACKEND;
+
+  rpc GetTasksList(GetTasksListRequest) returns (GetTasksListResponse);
+}
+
+message GetTasksListRequest {
+  optional string device_id = 1;
+  string user_id = 2;
+}
+
+message GetTasksListResponse {
+  repeated Task task_list = 1;
+}
+
+message Task {
+  string task_id = 1;
+  google.protobuf.Timestamp created_date = 2;
+  TaskType type = 3;
+  string message = 4;
+  optional string data_base64_json = 5; // Base64 encoded JSON to avoid losing data in conversion
+  string fcm_message_id = 6;
+  int64 created_seconds_ago = 7;
+
+  enum TaskType {
+    MFA = 0;
+    SCA_ENROLL = 1;
+    AUTHORISE_TRANSFER = 2;
+  }
+}

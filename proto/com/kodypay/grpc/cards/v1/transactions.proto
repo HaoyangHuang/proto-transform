@@ -1,0 +1,169 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.cards.v1;
+
+import "google/protobuf/timestamp.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "TransactionProto";
+option java_package = "com.kodypay.grpc.cards.v1";
+
+service KpTransactionService {
+  option (options.team) = FINANCIAL_SERVICES;
+
+  rpc GetTransactions(TransactionsRequest) returns (TransactionsResponse);
+  rpc GetTransactionDetails(TransactionDetailsRequest) returns (TransactionSummary);
+}
+
+message TransactionsRequest {
+  reserved 1;
+  reserved "store";
+
+  repeated Filter filter = 2;
+  message Filter {
+    FilterType type = 1;
+    oneof FilterData {
+      google.protobuf.Timestamp data_date = 2;
+      FilterStatusData data_status = 3;
+      string data_number = 4; // BigDecimal
+      FilterTypeData data_type = 5;
+    }
+    enum FilterType {
+      BY_DATE_BEFORE = 0;
+      BY_DATE_AFTER = 1;
+      BY_STATUS = 3;
+      BY_TYPE = 5;
+      BY_AMOUNT_MIN = 6;
+      BY_AMOUNT_MAX = 7;
+    }
+    enum FilterStatusData {
+      SUCCESS = 0;
+      PENDING = 1;
+      FAILED = 2;
+      PENDING_AUTH = 3;
+      AUTH_GRANTED = 4;
+    }
+    enum FilterTypeData {
+      PAYMENT = 0;
+      REFUND = 1;
+      TRANSFER_IN = 2;
+      TRANSFER_OUT = 3;
+      ATM_WITHDRAWAL = 4;
+      ATM_FEE = 5;
+      BANK = 6;
+    }
+  }
+  oneof key {
+    string card = 3;
+    string account = 4;
+  }
+  int32 first = 5;
+  int32 offset = 6;
+  // We need this because transactions come in quickly so pagination will break without an upper bound
+  // ie) We list the first 5 at offset 0, then 5 transactions come in, we list the first 5 at offset 5, without a bound
+  // this would return the same 5 transactions!
+  // Idea is to do an initial retrieval then on following calls pass up a timestamp returned in the initial pagination
+  // result to help the API filter out newer payments
+  optional google.protobuf.Timestamp paged_before = 7;
+}
+
+message TransactionsResponse {
+  repeated TransactionSummary transactions = 1;
+  TransactionsPagination pagination = 2;
+  optional LimitsInfo limits_info = 3;
+}
+message LimitsInfo {
+  repeated AccountLimit limit = 1;
+}
+message AccountLimit {
+  string card = 1;
+  string id = 2; // internal id
+  AccountLimitType type = 3;
+  string amount = 4;
+  AccountLimitInterval interval = 5;
+  string remaining = 6;
+  google.protobuf.Timestamp resetDateTime = 7;
+  string externalId = 8;
+
+  enum AccountLimitType {
+    SPENDING = 0;
+    WITHDRAWAL = 1;
+  }
+
+  enum AccountLimitInterval {
+    DAILY = 0;
+    WEEKLY = 1;
+    MONTHLY = 2;
+  }
+}
+
+message TransactionDetailsRequest {
+  string transaction_id = 1;
+  TransactionDetailsType type = 2;
+  enum TransactionDetailsType {
+    CARD = 0;
+    ACCOUNT = 1;
+  }
+}
+
+message TransactionsPagination {
+  int32 first = 1;
+  int32 offset = 2;
+  int32 total = 3;
+  google.protobuf.Timestamp paged_before = 4;
+}
+
+message TransactionSummary {
+  string transaction_id = 1;
+  TransactionStatus status = 2;
+  google.protobuf.Timestamp date_created = 3;
+  string description = 4;
+  string amount = 5; // BigDecimal
+  string category = 6; // MCC
+  TransactionType type = 7;
+  string reason = 8;
+  TransactionDetails details = 9;
+  optional string approver_full_name = 10;
+  string store_id = 11;
+  int32 attachment_count = 12;
+  optional TransactionAttachments attachments = 13;// This is optional because the property won't be set in TransactionsResponse
+}
+message TransactionAttachments {
+  repeated TransactionAttachment attachments = 1;
+
+  message TransactionAttachment {
+    string id = 1;
+    string name = 2;
+    int32 size = 3;
+    string mime_type = 4;
+    google.protobuf.Timestamp created_at = 5;
+    optional string thumbnail = 6; //This will be a URL. Some mimetypes won't support thumbnails hence optional
+  }
+}
+
+
+enum TransactionStatus {
+  SUCCESS = 0;
+  PENDING = 1;
+  FAILED = 2;
+  PENDING_AUTH = 3;
+  AUTH_GRANTED = 4;
+}
+
+enum TransactionType {
+  PAYMENT = 0;
+  REFUND = 1;
+  TRANSFER_IN = 2;
+  TRANSFER_OUT = 4;
+  ATM_WITHDRAWAL = 5;
+  ATM_FEE = 6;
+  MONTHLY_FEES = 7;
+  BANK = 8;
+  CASHBACK = 9;
+}
+
+message TransactionDetails {
+  string description = 1;
+  string card_last_four_digits = 2;
+}

@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.acquiringfees;
+
+import "options/team.proto";
+
+option java_package = "com.kodypay.grpc.acquiringfees";
+option java_multiple_files = true;
+option java_outer_classname = "KpPlatformFee";
+
+service PlatformFeeService {
+  option (options.team) = INTERNAL_SERVICES;
+
+  rpc GetPlatformFee (GetPlatformFeeRequest) returns (GetPlatformFeeResponse);
+  rpc UpsertPlatformFee (UpsertPlatformFeeRequest) returns (UpsertPlatformFeeResponse);
+}
+
+message GetPlatformFeeRequest {
+  string store_id = 1;
+}
+
+message GetPlatformFeeResponse {
+  string rate = 1; // BigDecimal. eg: "1.5" = 1.5%
+}
+
+message UpsertPlatformFeeRequest {
+  string store_id = 1;
+  string rate = 2; // BigDecimal. eg: "1.5" = 1.5%
+}
+
+message UpsertPlatformFeeResponse {}

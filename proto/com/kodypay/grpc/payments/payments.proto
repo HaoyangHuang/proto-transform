@@ -1,0 +1,362 @@
+syntax = "proto3";
+package com.kodypay.grpc.payments;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/time.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/payment-mode.proto";
+import "com/kodypay/grpc/common/payment-gateway.proto";
+import "com/kodypay/grpc/common/shopper-interaction.proto";
+import "com/kodypay/grpc/common/token-payment-error-reason.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "PaymentsProto";
+option java_package = "com.kodypay.grpc.payments";
+
+// This service should be exposed only through API key.
+// Terminals should go through a terminal API implemented in core that authorises the terminal
+service KpTokenService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc CreateCardToken(CreateCardTokenRequest) returns (CreateCardTokenResponse);
+  rpc CreatePaymentWithToken(CreatePaymentWithTokenRequest) returns (CreatePaymentWithTokenResponse);
+  // This will return NOT_FOUND if card no/expiry do not match
+  rpc GetTokenDetails(GetTokenDetailsRequest) returns (GetTokenDetailsResponse);
+  rpc GetByAdyenToken(GetByAdyenTokenRequest) returns (GetByAdyenTokenResponse);
+  rpc GetByOriginalPaymentRef(GetByOriginalPaymentRefRequest) returns (GetTokenDetailsResponse);
+  rpc GetPaymentWithToken(GetPaymentWithTokenRequest) returns (CreatePaymentWithTokenResponse);
+  rpc CreateTokenisation(CreateTokenisationRequest) returns (CreateTokenisationResponse);
+  rpc DeleteCardToken(DeleteCardTokenRequest) returns (DeleteCardTokenResponse);
+  rpc GetPayment(GetPaymentRequest) returns (CreatePaymentWithTokenResponse);
+}
+
+// This service should be exposed only through API key.
+// Terminals should go through a terminal API implemented in core that authorises the terminal
+// KU should be validated elsewhere (TBC)
+service KpPaymentService {
+  rpc CreateCardPayment(CreateCardPaymentRequest) returns (CreateCardPaymentResponse);
+  rpc CapturePayment(CapturePaymentRequest) returns (CapturePaymentResponse);
+  rpc PaymentMethods(PaymentMethodsRequest) returns (PaymentMethodsResponse);
+  rpc RefundPayment(RefundPaymentRequest) returns (RefundPaymentResponse);
+
+  rpc CreateDelayedPayment (CreateDelayedPaymentRequest) returns (CreateDelayedPaymentResponse);
+  rpc CaptureDelayedPayment (CaptureDelayedPaymentRequest) returns (CaptureDelayedPaymentResponse);
+  rpc GetDelayedPaymentDetails (GetDelayedPaymentDetailsRequest) returns (GetDelayedPaymentDetailsResponse);
+}
+
+message CreateTokenisationRequest {
+  string store_id = 1;
+  common.Money amount = 2;
+  string encrypted_card_number = 3;
+  string encrypted_expiry_month = 4;
+  string encrypted_expiry_year = 5;
+  string encrypted_security_code = 6;
+  string scheme = 7;
+  string merchant_account = 8;
+  string order_id = 9;
+  optional string return_url = 10;
+}
+
+message CreateTokenisationResponse {
+  string idempotency_key = 1;
+  string status = 2;
+  string order_id = 5;
+  optional string kody_token = 3;
+  optional string expiry_date = 4;
+  optional string return_url = 6;
+}
+
+message CreateCardTokenRequest {
+  string store_id = 1;
+  string shopper_reference = 2;
+  string country_code = 3;
+  SaleChannel sale_channel = 4;
+  optional string external_token = 5;
+  optional string original_card_last_four = 6;
+  optional string original_card_expiry = 7;// mm/yyyy
+  optional string original_card_brand = 8;
+  optional string original_card_variant = 9;
+  optional string original_card_funding_source = 10;
+  optional string organisation_id = 11;
+  optional string merchant_account = 12; //IPP or ECOM, sent by core based on sales channel
+}
+message CreateCardTokenResponse {
+  string id = 1;
+  string kody_token = 2;
+  string expiry_date = 3;// mm/yyyy
+}
+
+message CreatePaymentWithTokenRequest {
+  string store_id = 1;
+  string kody_token = 2;
+  string expiry_date = 3;
+  common.Money amount = 4;
+  optional string batch_id = 5;
+  optional string terminal_id = 6;
+  common.PaymentMode payment_mode = 7;
+  optional string merchant_reference = 8;
+  map<string, string> metadata = 9;
+  optional common.Money source_amount = 10; // for multi-currency payments
+  string idempotency_key = 11; // to prevent duplicate payments
+  // fields sent by core:
+  optional string merchant_balance_id = 12; // for split, sent by core, based on store_id
+  optional string kody_balance_id = 13; // for split, sent by core, based on store_id
+  // more fields that could be sent by the terminal (to avoid issues related to a missing token):
+  optional SaleChannel sale_channel = 14; // from token creation, sent by terminal
+  optional string merchant_account = 15; //IPP or ECOM, sent by core based on sales channel
+  optional string external_token = 16; // from token creation, sent by terminal
+  optional string external_shopper_reference = 17; // from token creation, sent by terminal
+  optional string original_card_last_four = 18; // from token creation, sent by terminal
+  optional string original_card_brand = 19; // from token creation, sent by terminal
+  optional string original_card_variant = 20; // from token creation, sent by terminal
+  optional string original_card_funding_source = 21; // from token creation, sent by terminal
+  optional string merchant_order_id = 22; // optional, merchant order id
+  optional string merchant_payment_reference = 23; // optional, merchant payment reference. Must be unique per store if provided.
+}
+
+message CreatePaymentWithTokenResponse {
+  oneof result {
+    Success success = 1;
+    Failure failure = 2;
+  }
+  string psp_reference = 3;//we get a psp ref even when there's an adyen failure. Used for receipts
+  optional string original_card_last_four = 4; // from token creation, for receipt
+  optional string original_card_brand = 5; // from token creation, for receipt
+  optional string payment_id = 6; // the payment id in Kody's system, wombat payment id
+  optional PaymentStatus payment_status = 7;
+  optional string original_card_variant = 8;
+  optional string merchant_reference = 9;
+  optional string merchant_order_id = 10;
+  optional common.Money amount = 11;
+  optional google.protobuf.Timestamp payment_date = 12; // when the payment was made
+  optional string merchant_payment_reference = 13; // merchant payment reference, if provided
+
+  message Success {
+    string psp_reference = 1 [deprecated = true]; //use top level psp_reference instead
+  }
+  message Failure {
+    string description = 1;
+    optional common.TokenPaymentErrorReason error_reason = 2;
+  }
+  enum PaymentStatus {
+    PAYMENT_STATUS_UNSPECIFIED = 0;
+    NEW = 1;
+    PRE_AUTHORISED = 2;
+    AUTHORISED = 3;
+    CANCELLED = 4;
+    ERROR = 5;
+    REFUSED = 6;
+    PENDING_CAPTURE = 7;
+  }
+}
+
+message GetPaymentWithTokenRequest {
+  string store_id = 1;
+  string kody_token = 2;
+  common.Money amount = 4;
+  string terminal_id = 5;
+  string idempotency_key = 6; // from original payment attempt
+  google.protobuf.Timestamp payment_datetime = 7; // when the original payment attempt was sent
+}
+
+enum SaleChannel {
+  IPP = 0;
+  ECOM = 1;
+}
+
+message GetTokenDetailsRequest {
+  string store_id = 1;
+  string kody_token = 2;
+  string expiry_date = 3;
+}
+message GetTokenDetailsResponse {
+  TokenDetails details = 1;
+}
+message TokenDetails {
+  string id = 1;
+  string kody_token = 2;
+  string expiry_date = 3;
+  optional string original_card_last_four = 4;
+  optional string original_card_brand = 5;
+  optional string original_card_variant = 6;
+  optional google.protobuf.Timestamp kody_token_creation_date = 7;
+  optional string original_card_funding_source = 8;
+}
+
+message GetByOriginalPaymentRefRequest {
+  string store_id = 1;
+  string original_payment_ref = 2;
+}
+
+message GetByAdyenTokenRequest {
+  string adyen_token = 1;
+  string store_id = 2;
+}
+
+message GetByAdyenTokenResponse {
+  string kody_token = 2;
+  string expiry_date = 3;
+}
+
+message CapturePaymentRequest {
+  string store_id = 1;
+  string psp_reference = 2;
+  common.Money capture_amount = 5;
+  map<string, string> metadata = 6;
+  string merchant_reference = 7;
+  SaleChannel sale_channel = 8;
+  string idempotency_key = 9;
+  optional string merchant_balance_id = 10; // for split, sent by core, based on store_id
+  optional string kody_balance_id = 11; // for split, sent by core, based on store_id
+  optional string merchant_account = 12; //IPP or ECOM, sent by core based on sales channel
+}
+
+message CapturePaymentResponse {
+}
+
+message CreateCardPaymentRequest {
+  string store_id = 1;
+  common.Money amount = 2;
+  string card_holder_name = 3;
+  oneof payment_method {
+    OneTimeToken one_time_token = 4;
+  }
+  SaleChannel sale_channel = 5;
+  optional string merchant_reference = 6;
+  optional string batch_id = 7;
+  optional string terminal_id = 8;
+  optional string card_last_four = 9;
+  optional string card_brand = 10;
+  optional string card_variant = 11;
+  common.PaymentMode payment_mode = 12;
+  bool generate_token = 13;
+  optional Deposit deposit = 14;
+  optional string card_funding_source = 15;
+  optional bool is_no_cvv = 16;
+}
+message OneTimeToken {
+  string token = 1;
+  common.PaymentGateway payment_gateway = 2;
+}
+message Deposit {
+  string deposit_ref = 13;
+  string deposit_id = 14;
+}
+message CreateCardPaymentResponse {
+  string id = 1;
+  string psp_reference = 2; //this will be either Adyen or CKO payment reference
+  bool success = 3;
+  optional string error_description = 4;
+  optional string card_brand = 5;
+  optional TokenDetails token = 6;
+  optional string card_last_four = 7; // returned from Adyen
+}
+
+message PaymentMethodsRequest {
+  string store_id = 1;
+  SaleChannel sale_channel = 2;
+  string country_code = 3;
+  PaymentChannel payment_channel = 4;
+  common.Money amount = 5;
+}
+enum PaymentChannel {
+  ANDROID = 0;
+  IOD = 1;
+  WEB = 2;
+}
+message PaymentMethodsResponse {
+  string methods = 1; //base64 encoded json blob from Adyen
+}
+
+message CreateDelayedPaymentRequest {
+  DelayedPaymentDetails payment_details = 1;
+}
+message CreateDelayedPaymentResponse {
+  DelayedPaymentDetails payment_details = 1;
+}
+
+message CaptureDelayedPaymentRequest {
+  string psp_reference = 1;
+  string store_id = 2;
+  optional OfferDetails offer_details = 3;
+  map<string, string> metadata = 4;
+}
+message CaptureDelayedPaymentResponse {
+  optional DelayedPaymentDetails payment_details = 1;
+  optional string message = 2;
+}
+
+message GetDelayedPaymentDetailsRequest {
+  string psp_reference = 1;
+}
+
+message GetDelayedPaymentDetailsResponse {
+  DelayedPaymentDetails payment_details = 1;
+}
+
+message DelayedPaymentDetails {
+  string psp_reference = 1;
+  common.Money sale_amount = 2;
+  string pan = 3;
+  google.protobuf.Timestamp datetime = 4;
+  DelayedPaymentState state = 5;
+  string store_id = 6;
+  string auth_code = 7;
+  string terminal_id = 8;
+  optional common.Money tip = 9;
+  string payment_method = 10;
+  string authorisation_data = 11;
+  common.ShopperInteraction shopper_interaction = 12;
+  optional OfferDetails offer_details = 13;
+  optional string captured_amount = 14;
+  enum DelayedPaymentState {
+    STATE_UNSPECIFIED = 0;
+    STATE_OPEN = 1;
+    STATE_CAPTURED = 2;
+    STATE_CAPTURE_PENDING = 3;
+    STATE_CAPTURE_FAILED = 4;
+    STATE_CANCELLED = 5;
+    STATE_FAILED = 6;
+    STATE_AWAITING_CAPTURE_RESULT = 7;
+  }
+}
+
+message OfferDetails {
+  string offer_id = 1;
+  string campaign_id = 2;
+  bool apply_offer = 3;
+  common.Money amount_discounted = 4;
+  string shopper_identifier_id = 5;
+}
+
+message RefundPaymentRequest {
+  string store_id = 1;
+  string payment_psp_reference = 2;
+  common.Money refund_amount = 3;
+  SaleChannel sales_channel = 4;
+  string idempotency_key = 5;
+  string merchant_reference = 6;
+}
+
+message RefundPaymentResponse {
+  string refund_psp_reference = 1;
+  optional string failure_reason = 2; //populated on failure, otherwise refund was accepted
+}
+
+message DeleteCardTokenRequest {
+  string store_id = 1; // Kody store id
+  string shopper_reference = 2; // Shopper reference to identify the shopper
+  string kody_token = 3; // Kody token to delete
+}
+
+message DeleteCardTokenResponse {
+}
+
+message GetPaymentRequest {
+  string store_id = 1;
+  oneof payment_identifier {
+    string payment_id = 2;
+    string merchant_payment_reference = 3;
+  }
+}
+

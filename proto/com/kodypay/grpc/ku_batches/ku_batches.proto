@@ -1,0 +1,103 @@
+syntax = "proto3";
+package com.kodypay.grpc.ku_batches;
+import "google/protobuf/timestamp.proto";
+import "com/kodypay/grpc/common/money.proto";
+import "com/kodypay/grpc/common/pagination.proto";
+import "com/kodypay/grpc/transactions/v1/card-scheme.proto";
+import "options/team.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "KUBatchesProto";
+option java_package = "com.kodypay.grpc.ku_batches";
+
+service BatchesService {
+  option (options.team) = PAYMENTS_SERVICES;
+
+  rpc GetBatchPayment(GetBatchPaymentRequest) returns (BatchPayment);
+  rpc GetPaginatedBatchPayments(GetPaginatedBatchPaymentsRequest) returns (GetPaginatedBatchPaymentsResponse);
+  rpc AdjustBatchPaymentTip(AdjustBatchPaymentTipRequest) returns (BatchPayment);
+  rpc CaptureBatchPayment(CaptureBatchPaymentRequest) returns (BatchPayment);
+  rpc CancelBatchPayment(CancelBatchPaymentRequest) returns (BatchPayment);
+}
+
+message GetBatchPaymentRequest {
+  string psp_reference = 1;
+  string store_id = 2;
+}
+
+message GetPaginatedBatchPaymentsRequest {
+  string store_id = 1 [deprecated = true]; // see store_ids
+  int32 first = 2;
+  int32 offset = 3;
+  optional google.protobuf.Timestamp created_from = 4;
+  optional google.protobuf.Timestamp created_to = 5;
+  repeated BatchPaymentState state_in = 6;
+  optional string free_text_contains = 7;
+  optional string amount_from = 8; //BigDecimal
+  optional string amount_to = 9; //BigDecimal
+  repeated transactions.v1.CardScheme card_scheme_in = 10;
+  repeated string store_ids = 11;
+}
+
+message AdjustBatchPaymentTipRequest {
+  string psp_reference = 1;
+  string store_id = 2;
+  common.Money amount = 3;
+}
+
+message CaptureBatchPaymentRequest {
+  string psp_reference = 1;
+  string store_id = 2;
+  string idempotency_key = 3;
+}
+
+message CancelBatchPaymentRequest {
+  string psp_reference = 1;
+  string store_id = 2;
+}
+
+message GetPaginatedBatchPaymentsResponse {
+  repeated BatchPayment batch_payments = 1;
+  common.Pagination pagination = 2;
+}
+
+message BatchPayment {
+  string store_id = 1;
+  string terminal_id = 2;
+  string batch_id = 3;
+  string psp_reference = 4;
+  string card_scheme = 5; // see also: card_scheme_type field
+  string card_last_four_digits = 6;
+  BatchPaymentState state = 7;
+  common.Money sale = 8;
+  common.Money tip = 9;
+  common.Money total = 10;
+  optional common.Money pending_tip = 11;
+  optional common.Money pending_total = 12;
+  google.protobuf.Timestamp created_at = 13;
+  google.protobuf.Timestamp updated_at = 14;
+  bool is_wallet_payment = 15;
+  bool is_batch_closed = 16;
+  bool is_deposit = 17;
+  bool is_auto_capture = 18;
+  bool allow_adjustment_action = 19;
+  bool allow_capture_action = 20;
+  bool allow_cancel_action = 21;
+  bool apply_customer_fx_currency = 22;
+  optional common.Money ccc_calculated_amount = 23;
+  optional string captured_amount = 24;
+  optional string fx_adjusted_amount = 25;
+  transactions.v1.CardScheme card_scheme_type = 26;
+  optional string store_name = 27;
+}
+
+enum BatchPaymentState { // if this is used elsewhere this could be elevated into a common package
+  OPEN = 0;
+  CAPTURED = 1;
+  CANCELLED = 2;
+  CAPTURE_PENDING = 3;
+  CAPTURE_FAILED = 4;
+  ADJUSTMENT_PENDING = 5;
+  ADJUSTMENT_FAILED = 6;
+  DECLINED = 7;
+}
