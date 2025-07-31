@@ -3,15 +3,6 @@ import path from "path";
 import protobuf from "protobufjs";
 import { PROTO_ROOT } from "./const";
 
-// 指定入口 proto 文件
-// const ENTRY_PROTO = "com/kodypay/grpc/deposits/deposits.proto";
-// const MESSAGE_TYPE = "com.kodypay.grpc.deposits.GetPaginatedDepositsResponse";
-
-// const root = new protobuf.Root();
-// root.resolvePath = function (origin, target) {
-//   return PROTO_ROOT + target;
-// };
-
 // 递归遍历目录下的所有 .proto 文件
 function findProtoFiles(dir: string, protoFiles: string[] = []) {
   try {
@@ -69,17 +60,16 @@ function getProtoInfo(url: string) {
 
 export async function trans2Json(url: string, buffer: Uint8Array) {
   try {
-    const root = new protobuf.Root();
-    root.resolvePath = function (origin, target) {
-      return PROTO_ROOT + target;
-    };
-
     const protoInfo = getProtoInfo(url);
     console.log("protoInfo >>> ", protoInfo);
 
     if (!protoInfo) return null;
 
     // 加载 proto
+    const root = new protobuf.Root();
+    root.resolvePath = function (origin, target) {
+      return PROTO_ROOT + target;
+    };
     await root.load(protoInfo.protoFile, { keepCase: true });
     // console.log("root >>> ", root);
     const MessageType = root.lookupType(protoInfo.responseType);
@@ -97,7 +87,7 @@ export async function trans2Json(url: string, buffer: Uint8Array) {
 
     // 输出 JSON
     const json = JSON.stringify(object, null, 2);
-    console.log("trans2Json json >>>>>>>\n", json);
+    // console.log("trans2Json json >>>>>>>\n", json);
     return json;
   } catch (e) {
     console.log("trans2Json error >>>>\n", e);
