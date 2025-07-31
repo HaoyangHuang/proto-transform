@@ -1,10 +1,47 @@
-const OriginalXHR = window.XMLHttpRequest;
+function generateUUID() {
+  return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, (c) =>
+    (
+      c ^
+      (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))
+    ).toString(16)
+  );
+}
 
+const SESSION_KEY = "GRPC_WEB_TRANSFORMED";
+const addItem = (key, item) => {
+  try {
+    const prev = sessionStorage.getItem(SESSION_KEY) || "{}";
+    const prevObj = JSON.parse(prev);
+    prevObj[key] = item;
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(prevObj));
+    // console.log("addItem prevObj>>>> ", prevObj);
+  } catch (e) {
+    console.log("setItem error", e);
+  }
+};
+const setItem = (key, item) => {
+  try {
+    const prev = sessionStorage.getItem(SESSION_KEY);
+    if (prev) {
+      const prevObj = JSON.parse(prev);
+      if (prevObj[key]) {
+        prevObj[key] = { ...prevObj[key], ...item };
+      }
+      // console.log("setItem prevObj>>>> ", prevObj);
+      sessionStorage.setItem(SESSION_KEY, JSON.stringify(prevObj));
+    }
+  } catch (e) {
+    console.log("setItem error", e);
+  }
+};
+
+const OriginalXHR = window.XMLHttpRequest;
 class HookedXHR extends OriginalXHR {
   constructor() {
     super();
     this._method = null;
     this._url = null;
+    this._key = null;
 
     this.addEventListener("readystatechange", () => {
       if (this.readyState === 4 && this._method === "post") {
@@ -14,6 +51,14 @@ class HookedXHR extends OriginalXHR {
 
         const contentType = headers["content-type"] || "";
         if (contentType.includes("application/grpc-web")) {
+          this._key = generateUUID();
+          const newItem = {
+            key: this._key,
+            url: this._url,
+            time: new Date(),
+          };
+          addItem(this._key, newItem);
+
           // 是 grpc-web POST 请求，处理响应体
           const responseData =
             this.responseType === "arraybuffer"
@@ -27,6 +72,7 @@ class HookedXHR extends OriginalXHR {
                 type: "GRPC_DATA",
                 buffer: responseData.buffer, // 将 Uint8Array 转换为 ArrayBuffer
                 url: this._url,
+                key: this._key,
               },
               "*"
             );
@@ -61,20 +107,6 @@ function parseHeaders(headerStr) {
   return headers;
 }
 
-// handleGrpcResponse 函数不再需要，因为数据直接从 HookedXHR 发送
-// function handleGrpcResponse(uint8Array) {
-//   // Convert Uint8Array to a regular array for JSON serialization
-//   const dataToSend = Array.from(uint8Array);
-
-//   window.postMessage(
-//     {
-//       type: "GRPC_WEB_BINARY",
-//       data: dataToSend, // postMessage 不支持 Uint8Array 直接传
-//     },
-//     "*"
-//   );
-// }
-
 // 监听来自 content.js 的消息，这些消息可能包含 background.js 处理后的数据
 window.addEventListener("message", (event) => {
   if (event.source !== window) return;
@@ -82,6 +114,7 @@ window.addEventListener("message", (event) => {
   const msg = event.data;
   if (msg.type === "GRPC_WEB_TRANSFORMED") {
     console.log("[gRPC-Web XHR transformed]:", msg.data);
+    setItem(msg.key, { transformedData: msg.data });
   }
 });
 

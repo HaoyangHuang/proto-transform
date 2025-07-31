@@ -11,24 +11,14 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
+      "matches": ["https://*.kodypay.com/*"],
       "js": ["content.js"],
       "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": [
-        "inject.js",
-        "lib/output.js",
-        "proto/**/*.proto",
-        "proto/com/kodypay/grpc/deposits/deposits.proto",
-        "proto/com/kodypay/grpc/common/money.proto",
-        "proto/com/kodypay/grpc/common/pagination.proto",
-        "proto/com/kodypay/grpc/transactions/v1/card-scheme.proto",
-        "proto/options/team.proto",
-        "proto/google/protobuf/timestamp.proto"
-      ],
+      "resources": ["inject.js", "show/index.js"],
       "matches": ["<all_urls>"]
     }
   ],

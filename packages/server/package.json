@@ -8,10 +8,10 @@
     "build": "node esbuild.config.js --watch"
   },
   "dependencies": {
+    "@kodypay/kp-protocols-grpc": "^1.0.716",
     "protobufjs": "^7.5.3"
   },
   "devDependencies": {
-    "@kodypay/kp-protocols-grpc": "^1.0.716",
     "@types/node": "^24.1.0",
     "esbuild": "^0.25.8"
   }

@@ -4,7 +4,7 @@ console.log("Proto Transform Extension background script running.");
 
 chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async (msg) => {
-    console.log("[background.js] Received message:", msg);
+    // console.log("[background.js] Received message:", msg);
     if (msg.type === "GRPC_DATA") {
       //   const uint8Array = new Uint8Array(msg.buffer);
       const dataToSend = Object.values(msg.buffer);
@@ -14,13 +14,13 @@ chrome.runtime.onConnect.addListener((port) => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ data: dataToSend, url: msg.url }),
+        body: JSON.stringify({ ...msg, data: dataToSend }),
       })
         .then(async (response) => {
-          console.log(
-            "[gRPC-Web XHR transform response in background]:",
-            response
-          );
+          // console.log(
+          //   "[gRPC-Web XHR transform response in background]:",
+          //   response
+          // );
           if (!response.ok) {
             const errorText = await response.text();
             console.error(
@@ -35,8 +35,9 @@ chrome.runtime.onConnect.addListener((port) => {
           return response.json();
         })
         .then((jsonResult) => {
-          console.log("[gRPC-Web XHR transformed in background]:", jsonResult);
+          // console.log("[gRPC-Web XHR transformed in background]:", jsonResult);
           port.postMessage({
+            ...msg,
             type: "GRPC_WEB_TRANSFORMED",
             data: jsonResult,
           });

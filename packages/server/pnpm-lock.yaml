@@ -8,13 +8,13 @@ importers:
 
   .:
     dependencies:
+      '@kodypay/kp-protocols-grpc':
+        specifier: ^1.0.716
+        version: 1.0.716
       protobufjs:
         specifier: ^7.5.3
         version: 7.5.3
     devDependencies:
-      '@kodypay/kp-protocols-grpc':
-        specifier: ^1.0.716
-        version: 1.0.716
       '@types/node':
         specifier: ^24.1.0
         version: 24.1.0
