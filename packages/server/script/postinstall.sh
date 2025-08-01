@@ -6,6 +6,7 @@ rm -rf ./proto
 
 echo "开始拷贝 proto"
 cp -r node_modules/@kodypay/kp-protocols-grpc/src/main/proto .
+cp -r node_modules/@kodypay/proto-kodyverse/src/main/proto .
 cp -r node_modules/protobufjs/google ./proto
 
 echo "✅ proto 拷贝完成"

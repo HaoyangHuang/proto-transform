@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.payouts.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "PayoutsProto";
+option java_package = "com.kodypay.grpc.payouts.v1";
+
+service KpPayoutsService {
+  rpc GetPayouts(GetPayoutsRequest) returns (GetPayoutsResponse);
+}
+
+message GetPayoutsRequest {
+  string storeId = 1;
+  google.protobuf.Timestamp transactionDateFrom = 2;
+  google.protobuf.Timestamp transactionDateTo = 3;
+}
+
+message GetPayoutsResponse {
+  repeated Payout payouts = 1;
+  google.protobuf.Timestamp transactionDateFrom = 2;
+  google.protobuf.Timestamp transactionDateTo = 3;
+}
+
+message Payout {
+  google.protobuf.Timestamp transactionDate = 1;
+  PayoutSource source = 2;
+  string totalTransactions = 3;
+  string totalProcessed = 4;
+  string totalRefunded = 5;
+  string totalFees = 6;
+  string feesVat = 7;
+  string totalPayout = 8;
+}
+
+enum PayoutSource {
+  ONLINE = 0;
+  TERMINAL = 1;
+  DAILY_TOTAL = 2;
+}

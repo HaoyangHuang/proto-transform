@@ -1,0 +1,472 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.cards.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "CardsProto";
+option java_package = "com.kodypay.grpc.cards.v1";
+
+service KpCardsService {
+  rpc GetStores(GetStoresRequest) returns (GetStoresResponse);
+  rpc GetCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc GetCard(GetCardRequest) returns (CardSummary);
+  rpc GetBalance(GetBalanceRequest) returns (CardBalance);
+  rpc GetAccounts(GetAccountsRequest) returns(GetAccountsResponse);
+  rpc GetAccountBalance(GetAccountBalanceRequest) returns (AccountBalance);
+  rpc Create3ds(Create3dsRequest) returns (ThreeDs);
+  rpc Update3ds(Update3dsRequest) returns (ThreeDs);
+  rpc GetThreeDs(GetThreeDsRequest) returns (ThreeDs);
+  rpc GetPanRevealKey(RevealCardDetailKeyRequest) returns (RevealCardDetailKeyResponse);
+  rpc GetEncryptedPan(EncryptedCardDetailRequest) returns (EncryptedPanResponse);
+  rpc GetPinRevealKey(RevealCardDetailKeyRequest) returns (RevealCardDetailKeyResponse);
+  rpc GetEncryptedPin(EncryptedCardDetailRequest) returns (EncryptedPinResponse);
+  rpc CreatePayout(CreatePayoutRequest) returns (CreatePayoutResponse);
+  rpc GetAuthenticatingUsers(GetAuthenticatingUsersRequest) returns (GetAuthenticatingUsersResponse);
+  rpc GetPayoutDestinations(GetPayoutDestinationsRequest) returns (GetPayoutDestinationsResponse);
+  rpc GetCardBillingAddress(GetCardBillingAddressRequest) returns (Address);
+  rpc UpdateCardStatus(UpdateCardStatusRequest) returns (CardSummary);
+  rpc GetCardLimits(GetCardLimitsRequest) returns (CardLimitsResponse);
+  rpc CreateLimit(CreateLimitRequest) returns (CardLimit);
+  rpc UpdateLimit(UpdateLimitRequest) returns (CardLimit);
+  rpc DeleteLimit(DeleteLimitRequest) returns (CardLimit);
+}
+
+service KpCardsInternalService {
+  rpc CreateCard(CreateCardRequest) returns (CardSummary);
+  rpc CreateCardForAccount(CreateCardForAccountRequest) returns (CardSummary);
+  rpc GetCards(GetCardsRequest) returns (GetCardsResponse);
+  rpc GetCard(GetCardRequest) returns (CardSummary);
+  rpc UpdateCard(UpdateCardRequest) returns (CardSummary);
+  rpc GetCardLimits(GetCardLimitsRequest) returns (CardLimitsResponse);
+  rpc CreateLimit(CreateLimitRequest) returns (CardLimit);
+  rpc UpdateLimit(UpdateLimitRequest) returns (CardLimit);
+  rpc DeleteLimit(DeleteLimitRequest) returns (CardLimit);
+  rpc GetThreeDs(GetThreeDsRequest) returns (ThreeDs);
+  rpc Update3dsPhone(Update3dsPhoneRequest) returns (ThreeDs);
+  rpc Update3dsPassword(Update3dsPasswordRequest) returns (ThreeDs);
+}
+
+message GetStoresRequest {}
+
+message GetStoresResponse {
+  repeated Store stores = 1;
+}
+
+message Store {
+  string id = 1;
+  string name = 2;
+  int32 cardCount = 3;
+}
+
+message GetCardsRequest {
+  reserved 2;
+  reserved "details";
+
+  string store = 1 [deprecated = true]; //client should use accountIn instead
+  // bool details = 2; -- REMOVED
+  string freeTextContains = 3;
+  repeated string storeIn = 4 [deprecated = true];
+  repeated CardStatus statusIn = 5;
+  bool includeAccount = 6; //default is false hence old clients won't get account info unless they explicitly ask for that
+  repeated string accountIn = 7;
+}
+
+message GetCardRequest {
+  string id = 1;
+}
+
+message GetThreeDsRequest {
+  string id = 1;
+}
+
+message GetBalanceRequest {
+  string store = 1 [deprecated = true]; // use card instead
+  string card = 2;
+}
+
+message GetAccountsRequest {
+  optional string store = 1; // our storeId
+}
+
+message GetAccountsResponse {
+  repeated Account accounts = 1;
+}
+
+message Account {
+  string id = 1;
+  string store = 2;
+  optional CardPlatform platform = 3;
+  string name = 4;
+  string description = 5;
+  optional int32 cardCount = 6;
+  optional BankAccount bank_account= 7;
+}
+
+message BankAccount {
+  string id = 1;
+  string bic = 2;
+  map<string, string> local_details = 3;
+  map<string, string> international_detail = 4;
+}
+
+message GetAccountBalanceRequest {
+  string id = 1;
+}
+
+message AccountBalance {
+  string availableAmount = 1;
+  optional PayoutConfiguration payoutConfiguration = 2;
+}
+
+message PayoutConfiguration {
+  string id = 1;
+  string description = 2;
+  PayoutConfigurationStatus status = 3;
+}
+
+enum PayoutConfigurationStatus {
+  PAYOUT_CONFIGURATION_ACTIVE = 0;
+  PAYOUT_CONFIGURATION_INACTIVE = 1;
+  PAYOUT_CONFIGURATION_NOT_SET = 2;
+}
+
+message GetCardsResponse {
+  repeated CardSummary cards = 1;
+}
+
+message CreateCardRequest {
+  string id = 1;
+  string store = 2;
+  string lastFourDigits = 3;
+  string cardHolderId = 4;
+  string cardHolderDisplayName = 5;
+  string cardHolderFullName = 6 [deprecated = true]; //Use cardHolder instead
+  string expiryDate = 7;
+  string externalCardId = 8;
+  string balanceId = 9;
+  CardStatus status = 10;
+  string cardHolderSsoId = 11;
+  CardPlatform platform = 12;
+  CardBrand brand = 13;
+  CardBrandVariant brandVariant = 14;
+  CardHolder cardHolder = 15;
+  CardFormFactor formFactor = 16;
+  optional Address deliveryAddress = 17;
+  optional DeliveryName deliveryName = 18;
+  repeated LimitDefault limitDefaults = 19;
+}
+
+message CreateCardForAccountRequest {
+  oneof id {
+    string accountBalanceId = 1; //this is OUR accountBalanceId
+    string externalBalanceId = 13;
+  }
+  CardStatus status = 2;
+  string cardHolderSsoId = 3;
+  CardPlatform platform = 4;
+  CardBrand brand = 5;
+  CardBrandVariant brandVariant = 6;
+  CardHolder cardHolder = 7;
+  CardFormFactor formFactor = 8;
+  optional Address deliveryAddress = 9;
+  optional DeliveryName deliveryName = 10;
+  repeated LimitDefault limitDefaults = 11;
+  optional string cardHolderDisplayName = 12; // uses CardHolder firstName/lastName if empty
+}
+
+message UpdateCardRequest {
+  string id = 1;
+  CardStatus status = 2;
+  string cardHolderSsoId = 3;
+  optional StatusReason status_reason= 4;
+  optional string status_reason_details = 5;
+}
+
+message UpdateCardStatusRequest {
+  string id = 1;
+  CardStatus status = 2;
+  optional StatusReason reason = 3;
+  optional string reason_details = 4;
+}
+
+message LimitDefault {
+  LimitType type = 1;
+  LimitLevel level = 2;
+}
+
+enum LimitLevel {
+  NOT_ALLOWED = 0;
+  LOW = 1;
+  MEDIUM = 2;
+  HIGH = 3;
+}
+
+message CardSummary {
+  reserved 4;
+  reserved "details";
+
+  string id = 1;
+  string lastFourDigits = 2;
+  string cardHolderName = 3;
+  // CardDetails details = 4; -- REMOVED
+  string cardHolderDisplayName = 5;
+  string storeId = 6;
+  string storeName = 7;
+  string externalCardId = 8;
+  CardStatus status = 9;
+  string expiryDate = 10;
+  bool enrolledInThreeDs = 11;
+  bool userIsCardHolder = 12;
+  CardBrand brand = 13;
+  CardBrandVariant brandVariant = 14;
+  CardFormFactor formFactor = 15;
+  CardPlatform platform = 16;
+  string cardHolderSsoId = 17;
+  Account account = 18;
+}
+
+// REMOVED
+// message CardDetails {
+//   string balance = 1;
+// }
+
+message CardBalance {
+  string balance = 1;
+}
+
+message ThreeDs {
+  bool enrolled = 1;
+  string locale = 2;
+  string countryCode = 3;
+  string phoneNumber = 4;
+}
+
+enum CardStatus {
+  ACTIVE = 0;
+  INACTIVE = 1;
+  REVOKED = 2;
+  SUSPENDED = 3;
+}
+
+enum StatusReason {
+  Other = 0;
+  Lost = 1;
+  Stolen = 2;
+  Damaged = 3;
+  SuspectedFraud = 4;
+  Expired = 5;
+  EndOfLife = 6;
+  AccountClosure = 7;
+}
+
+message Create3dsRequest {
+  string id = 1;
+  string password = 2;
+  string locale = 3;
+  optional string countryCode = 4;
+  string phoneNumber = 5;
+}
+
+message Update3dsRequest {
+  string id = 1;
+  string password = 2;
+  optional string locale = 3;
+  optional string countryCode = 4;
+  optional string phoneNumber = 5;
+}
+
+message Update3dsPhoneRequest {
+  string cardId = 1;
+  optional string countryCode = 2;
+  string phoneNumber = 3;
+}
+
+message Update3dsPasswordRequest {
+  string cardId = 1;
+  string password = 2;
+}
+
+enum CardPlatform {
+  CHECKOUT = 0;
+  ADYEN = 1;
+}
+
+enum CardBrand {
+  VISA = 0;
+  MASTERCARD = 1;
+}
+
+enum CardBrandVariant {
+  DEBIT = 0;
+  PREPAID = 1;
+}
+
+enum CardFormFactor {
+  VIRTUAL = 0;
+  PHYSICAL = 1;
+}
+
+message CardHolder {
+  string residentialCountry = 1; //Example GB
+  string firstName = 2;
+  string lastName = 3;
+  string dateOfBirth = 4; //Expected YYYYMMDD
+}
+
+message DeliveryName {
+  string firstName = 1;
+  string lastName = 2;
+}
+
+message RevealCardDetailKeyRequest {
+  string card = 1;
+}
+
+message RevealCardDetailKeyResponse {
+  string publicKey = 1;
+  string publicKeyExpiryDate = 2; //Expected YYYY-MM-DD
+}
+
+message EncryptedCardDetailRequest {
+  string card = 1;
+  string encryptedKey = 2;
+  optional string otp = 3;
+}
+
+message EncryptedPanResponse {
+  string encryptedData = 1;
+}
+
+message EncryptedPinResponse {
+  string encryptedData = 1;
+  string token = 2;
+}
+
+message GetAuthenticatingUsersRequest {
+  string balance = 1; //This is the balanceId returned by GetBalances
+}
+message GetAuthenticatingUsersResponse {
+  repeated AuthenticatingUser authenticating_users = 1; // users that will authenticate a 3rd-party payout
+  message AuthenticatingUser { // based on SCA devices registered for the account
+    string user_id = 1; // include in 3rd-party payout request as authenticating user
+    string email_address = 2;
+    string full_name = 3;
+  }
+}
+
+message CreatePayoutRequest {
+  reserved 2;
+  reserved "store";
+  string balance = 1; //This is the balanceId returned by GetBalances
+  optional PayoutType type = 3; //Using enum so that in future we can set recurring payouts
+  string amount = 4;
+  optional PayoutDestination destination = 5;
+  optional string authenticating_user_id = 6;
+  optional string reference = 7;
+}
+
+enum PayoutType {
+  SINGLE = 0;
+}
+
+message PayoutDestination {
+  PayoutDestinationType type = 1;
+  optional string destinationId = 2;
+  optional string name = 3;
+}
+
+enum PayoutDestinationType {
+  BANK = 0;
+  BALANCE = 1;
+  THIRD_PARTY = 2;
+}
+
+message CreatePayoutResponse {
+  string transferReference = 1;
+  google.protobuf.Timestamp transferDateTime = 2;
+  string amount = 3;
+  string balanceAmount = 4;
+}
+
+message GetPayoutDestinationsRequest {
+  string balance = 1;
+}
+
+message GetPayoutDestinationsResponse {
+  repeated PayoutDestination destinations = 1;
+}
+
+message GetCardBillingAddressRequest {
+  string id = 1;
+}
+
+message Address {
+  string firstLine = 1;
+  string secondLine = 2;
+  string postCode = 3;
+  string city = 4;
+  string country = 5;
+  string thirdLine = 6;
+}
+
+message GetCardLimitsRequest {
+  oneof identifier {
+    string card = 1;
+    string store = 2;
+  }
+  repeated LimitType typeIn = 3;
+  repeated LimitStatus statusIn = 4;
+}
+
+message CreateLimitRequest {
+  string card = 1;
+  LimitType type = 2;
+  string amount = 3;
+  LimitInterval interval = 4;
+}
+
+message UpdateLimitRequest {
+  string id = 1; // internal id
+  LimitType type = 2;
+  string amount = 3;
+  LimitInterval interval = 4;
+  LimitStatus status = 5;
+}
+
+message DeleteLimitRequest {
+  string id = 1; // internal id
+}
+
+message CardLimitsResponse {
+  repeated CardLimit limits = 1;
+}
+
+message CardLimit {
+  string card = 1;
+  string id = 2; // internal id
+  LimitType type = 3;
+  string amount = 4;
+  LimitInterval interval = 5;
+  string remaining = 6;
+  google.protobuf.Timestamp resetDateTime = 7;
+  string externalId = 8;
+  LimitStatus status = 9;
+}
+
+enum LimitInterval {
+  DAILY = 0;
+  WEEKLY = 1;
+  MONTHLY = 2;
+}
+
+enum LimitType {
+  SPENDING = 0;
+  WITHDRAWAL = 1;
+}
+
+enum LimitStatus {
+  LIMIT_ACTIVE = 0;
+  LIMIT_INACTIVE = 1;
+}

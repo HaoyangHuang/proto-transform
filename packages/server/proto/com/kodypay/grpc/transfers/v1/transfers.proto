@@ -1,0 +1,19 @@
+syntax = "proto3";
+package com.kodypay.grpc.transfers.v1;
+
+option java_multiple_files = true;
+option java_outer_classname = "TransfersProto";
+option java_package = "com.kodypay.grpc.transfers.v1";
+
+service TransfersService {
+  rpc CompleteTransfer(CompleteTransferRequest) returns (CompleteTransferResponse);
+}
+
+message CompleteTransferRequest {
+  string internal_transfer_id = 1; // to find the KU initiated transfer (3rd-party payout)
+  string internal_sca_device_id = 2; // to identify the authenticating SCA device
+  string sdk_output = 3; // authentication result from SDK output 3
+}
+message CompleteTransferResponse {
+  bool success = 1;
+}

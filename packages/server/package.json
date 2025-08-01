@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@kodypay/kp-protocols-grpc": "^1.0.716",
+    "@kodypay/proto-kodyverse": "^6.16.0",
     "protobufjs": "^7.5.3"
   },
   "devDependencies": {

@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import protobuf from "protobufjs";
 import { PROTO_ROOT } from "./const";
-import { request } from "http";
 
 // {
 //   fullPath: {

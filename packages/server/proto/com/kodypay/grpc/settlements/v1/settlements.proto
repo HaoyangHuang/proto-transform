@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package com.kodypay.grpc.settlements.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "SettlementsProto";
+option java_package = "com.kodypay.grpc.settlements.v1";
+
+service KpSettlementsService {
+  rpc GetSettlement(GetSettlementRequest) returns (GetSettlementResponse);
+  rpc GetSettlements(GetSettlementsRequest) returns (GetSettlementsResponse);
+}
+
+message GetSettlementRequest {
+  string settlementId = 1;
+}
+
+message GetSettlementsRequest {
+  string storeId = 1 [deprecated = true]; // see store_ids
+  int32 first = 2;
+  optional google.protobuf.Timestamp before = 3;
+  optional google.protobuf.Timestamp to = 4;
+  optional google.protobuf.Timestamp from = 5;
+  repeated string store_ids = 6;
+}
+
+message GetSettlementsResponse {
+  message SettlementListItem {
+    string settlementId = 1;
+    google.protobuf.Timestamp settlementDate = 2;
+    google.protobuf.Timestamp periodFrom = 3;
+    google.protobuf.Timestamp periodTo = 4;
+    SettlementPlatform platform = 5;
+    SettlementTransferType transferType = 6;
+    int32 numberOfSalesAndRefunds = 7;
+    string grossTotal = 8;
+    string totalFees = 9;
+    string adjustments = 10;
+    string netTotal = 11;
+    SettlementStatus status = 12;
+    string storeId = 13;
+    string externalReference = 14;
+    string settlementAmount = 15;
+    optional string storeName = 16;
+  }
+
+  repeated SettlementListItem items = 1;
+}
+
+message GetSettlementResponse {
+  message CardSpecificSettlement {
+    string grossTotal = 1;
+    string transactionFees = 2;
+    string netTotal = 3;
+    int32 numberOfSales = 4;
+  }
+
+  message Adjustment {
+    string description = 1;
+    string amount = 2;
+  }
+
+  string settlementId = 1;
+  google.protobuf.Timestamp settlementDate = 2;
+  google.protobuf.Timestamp periodFrom = 3;
+  google.protobuf.Timestamp periodTo = 4;
+  SettlementPlatform platform = 5;
+  SettlementTransferType transferType = 6;
+  string balanceId = 7;
+  string balanceAccountName = 8;
+  int32 numberOfSales = 9;
+  int32 numberOfTips = 10;
+  int32 numberOfRefunds = 11;
+  string grossSales = 12;
+  string grossTips = 13;
+  string grossRefunds = 14;
+  string grossTotal = 15;
+  string transactionFees = 16;
+  repeated Adjustment adjustments = 17;
+  string totalFeesAndAdjustments = 18;
+  string netTotal = 19;
+  map<string, CardSpecificSettlement> byCardScheme = 20;
+  SettlementStatus status = 21;
+  string storeId = 22;
+  string externalReference = 23;
+  optional string settledBalanceId = 24;
+  optional string settledInternalBalanceAccountId = 25;
+  string settlementAmount = 26;
+  google.protobuf.Timestamp transfer_started_at = 27;
+  google.protobuf.Timestamp transfer_completed_at = 28;
+  optional string storeName = 29;
+}
+
+enum SettlementPlatform {
+  ADYEN = 0;
+  CHECKOUT = 1;
+}
+
+enum SettlementTransferType {
+  BANK = 0;
+  KODYWALLET = 1;
+}
+
+enum SettlementStatus {
+  SETTLED = 0;
+  FAILED_SETTLEMENT = 1;
+}

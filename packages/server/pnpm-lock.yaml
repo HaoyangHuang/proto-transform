@@ -11,6 +11,9 @@ importers:
       '@kodypay/kp-protocols-grpc':
         specifier: ^1.0.716
         version: 1.0.716
+      '@kodypay/proto-kodyverse':
+        specifier: ^6.16.0
+        version: 6.16.0
       protobufjs:
         specifier: ^7.5.3
         version: 7.5.3
@@ -183,6 +186,9 @@ packages:
   '@kodypay/kp-protocols-grpc@1.0.716':
     resolution: {integrity: sha512-aLBONtCgBjiih4qD5q4Bg0UYHovY9FaZ8E1A8pcqeXCbTDnu/YidUBQRmViApVLbEE+7evLE1hc2GaZtCapU/g==, tarball: https://npm.pkg.github.com/download/@kodypay/kp-protocols-grpc/1.0.716/4869bf9ea42f826f7fd57c647f294cafd5c6abfc}
 
+  '@kodypay/proto-kodyverse@6.16.0':
+    resolution: {integrity: sha512-x1LSN4R8crhlm8zfXEcub0jAoNxZg2lWH3SUCiLdid8EHTgC5SjpsLfEWUkhY/sIpb03rBWdE+KqnwYQ9E6qzw==, tarball: https://npm.pkg.github.com/download/@kodypay/proto-kodyverse/6.16.0/99d50edde07e99f868468c2ab4a33423aa78fa40}
+
   '@protobufjs/aspromise@1.1.2':
     resolution: {integrity: sha512-j+gKExEuLmKwvz3OgROXtrJ2UG2x8Ch2YZUxahh+s1F2HZ+wAceUNLkvy6zKCPVRkU++ZWQrdxsUeQXmcg4uoQ==}
 
@@ -312,6 +318,8 @@ snapshots:
     optional: true
 
   '@kodypay/kp-protocols-grpc@1.0.716': {}
+
+  '@kodypay/proto-kodyverse@6.16.0': {}
 
   '@protobufjs/aspromise@1.1.2': {}
 
