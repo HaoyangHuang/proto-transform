@@ -23,14 +23,12 @@ const setStorage = (key, value) => {
 const addItem = (key, item) => {
   try {
     const prev = sessionStorage.getItem(SESSION_STORAGE_KEY) || "{}";
-    const prevObj = JSON.parse(prev);
-    if (Reflect.ownKeys(prevObj).length > MAX_STORAGE_NUMBER_LIMIT) {
-      setStorage(SESSION_STORAGE_KEY, {});
-      return;
-    } else {
-      prevObj[key] = item;
-      setStorage(SESSION_STORAGE_KEY, prevObj);
+    let prevObj = JSON.parse(prev);
+    if (Reflect.ownKeys(prevObj).length >= MAX_STORAGE_NUMBER_LIMIT) {
+      prevObj = {};
     }
+    prevObj[key] = item;
+    setStorage(SESSION_STORAGE_KEY, prevObj);
     // console.log("addItem prevObj>>>> ", prevObj);
   } catch (e) {
     console.log("setItem error", e);
