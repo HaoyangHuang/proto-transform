@@ -2,6 +2,19 @@ import fs from "fs";
 import path from "path";
 import protobuf from "protobufjs";
 import { PROTO_ROOT } from "./const";
+import { request } from "http";
+
+// {
+//   fullPath: {
+//       KpDepositsService: [
+//           ['TerminalCreateDeposit', 'TerminalCreateDepositRequest', 'CreateDepositResponse']
+//       ]
+//   }
+// }
+const ServiceInfoMap: Record<
+  string,
+  Record<string, [string, string, string][] | undefined> | undefined
+> = {};
 
 // 递归遍历目录下的所有 .proto 文件
 function findProtoFiles(dir: string, protoFiles: string[] = []) {
@@ -25,33 +38,76 @@ function findProtoFiles(dir: string, protoFiles: string[] = []) {
   }
 }
 
+// 解析 proto 文件，提取 service 和 rpc 定义
+(function parseProtoServices(protoDir: string) {
+  const protoFiles = findProtoFiles(protoDir);
+
+  for (const file of protoFiles) {
+    const content = fs.readFileSync(file, "utf8");
+
+    const fileResult: Record<string, [string, string, string][]> = {};
+    const serviceRegex = /service\s+(\w+)\s*{([\s\S]*?)}/g;
+    let serviceMatch;
+
+    while ((serviceMatch = serviceRegex.exec(content)) !== null) {
+      const [, serviceName, body] = serviceMatch;
+      const rpcList: [string, string, string][] = [];
+
+      const rpcRegex =
+        /rpc\s+(\w+)\s*\(\s*(\w+)\s*\)\s+returns\s*\(\s*(\w+)\s*\)/g;
+      let rpcMatch;
+      while ((rpcMatch = rpcRegex.exec(body)) !== null) {
+        const [, rpcName, requestType, responseType] = rpcMatch;
+        rpcList.push([rpcName, requestType, responseType]);
+      }
+
+      if (rpcList.length > 0) {
+        fileResult[serviceName] = rpcList;
+      }
+    }
+
+    if (Object.keys(fileResult).length > 0) {
+      ServiceInfoMap[file] = fileResult;
+    }
+  }
+
+  return ServiceInfoMap;
+})(PROTO_ROOT);
+// console.log("ServiceInfoMap >>> ", JSON.stringify(ServiceInfoMap, null, 2));
+
 function getProtoInfo(url: string) {
   try {
     console.log("getProtoInfo url >>> ", url);
     const urlObj = new URL(url);
-    const match = urlObj.pathname.match(/\/(.+)\.([^/.]+)\/([^/]+)$/);
+    const match = urlObj.pathname.match(/\/.+\.([^/.]+)\/([^/]+)$/);
     if (!match) return null;
 
-    const [_, pkgPath, serviceName, methodName] = match;
+    const [_, serviceName, methodName] = match;
 
-    let protoFile = "";
-    const protoFiles = findProtoFiles("proto/");
-    for (const file of protoFiles) {
-      const content = fs.readFileSync(file, "utf8");
-
-      // 正则匹配 service DepositService
-      const regex = new RegExp(`service\\s+${serviceName}\\b`);
-      if (regex.test(content)) {
-        console.log("findProtoByService file >>> ", file);
-        protoFile = file.replace(PROTO_ROOT, "");
+    let protoPath = "",
+      requestType = "",
+      responseType = "";
+    for (const [path, protoInfo] of Object.entries(ServiceInfoMap)) {
+      if (!protoInfo) continue;
+      for (const [service, methodList] of Object.entries(protoInfo)) {
+        if (!methodList) continue;
+        if (service === serviceName) {
+          const target = methodList.find((item) => item[0] === methodName);
+          if (!target) break;
+          protoPath = path.replace(PROTO_ROOT, "");
+          requestType = target[1];
+          responseType = target[2];
+          break;
+        }
       }
     }
 
     return {
-      protoFile: protoFile,
       service: serviceName,
       method: methodName,
-      responseType: methodName + "Response",
+      protoPath,
+      requestType,
+      responseType,
     };
   } catch (e) {
     console.log("getProtoInfo error >>> ", e);
@@ -70,7 +126,7 @@ export async function trans2Json(url: string, buffer: Uint8Array) {
     root.resolvePath = function (origin, target) {
       return PROTO_ROOT + target;
     };
-    await root.load(protoInfo.protoFile, { keepCase: true });
+    await root.load(protoInfo.protoPath, { keepCase: true });
     // console.log("root >>> ", root);
     const MessageType = root.lookupType(protoInfo.responseType);
 
