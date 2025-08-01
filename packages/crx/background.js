@@ -1,12 +1,11 @@
-// background.js
+import { ET_GRPC_RESPONSE, ET_GRPC_TRANSFORMED } from "./lib/const.js";
 
 console.log("Proto Transform Extension background script running.");
 
 chrome.runtime.onConnect.addListener((port) => {
   port.onMessage.addListener(async (msg) => {
     // console.log("[background.js] Received message:", msg);
-    if (msg.type === "GRPC_DATA") {
-      //   const uint8Array = new Uint8Array(msg.buffer);
+    if (msg.type === ET_GRPC_RESPONSE) {
       const dataToSend = Object.values(msg.buffer);
 
       fetch("http://localhost:3000/transform", {
@@ -38,7 +37,7 @@ chrome.runtime.onConnect.addListener((port) => {
           // console.log("[gRPC-Web XHR transformed in background]:", jsonResult);
           port.postMessage({
             ...msg,
-            type: "GRPC_WEB_TRANSFORMED",
+            type: ET_GRPC_TRANSFORMED,
             data: jsonResult,
           });
         })
@@ -47,10 +46,6 @@ chrome.runtime.onConnect.addListener((port) => {
             "[gRPC-Web XHR transform failed in background]:",
             error
           );
-          port.postMessage({
-            type: "GRPC_WEB_TRANSFORMED_ERROR",
-            error: error.message,
-          });
         });
     }
   });

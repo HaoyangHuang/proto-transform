@@ -1,5 +1,8 @@
-// content.js
 console.log("content.js loaded");
+
+// import { ET_GRPC_RESPONSE } from "./lib/const.js"; content 没法import
+const ET_GRPC_RESPONSE = "ET_GRPC_RESPONSE";
+const ET_GRPC_TRANSFORMED = "ET_GRPC_TRANSFORMED";
 
 // 注入脚本到页面上下文执行（必须用 script 标签插入，因为 content script 和页面环境隔离）
 const injectScript = document.createElement("script");
@@ -18,7 +21,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.body.appendChild(div);
   const showScript = document.createElement("script");
-  showScript.src = chrome.runtime.getURL("show/index.js");
+  showScript.src = chrome.runtime.getURL("lib/show/index.js");
   showScript.type = "module";
   document.documentElement.appendChild(showScript);
 });
@@ -26,11 +29,11 @@ document.addEventListener("DOMContentLoaded", () => {
 const port = chrome.runtime.connect({ name: "myChannel" });
 port.onMessage.addListener((msg) => {
   // console.log("收到 background 的消息:", msg);
-  if (msg.type === "GRPC_WEB_TRANSFORMED") {
+  if (msg.type === ET_GRPC_TRANSFORMED) {
     window.postMessage(
       {
         ...msg,
-        type: "GRPC_WEB_TRANSFORMED",
+        type: ET_GRPC_TRANSFORMED,
       },
       "*"
     );
@@ -41,12 +44,11 @@ window.addEventListener("message", (event) => {
   if (event.source !== window) return;
 
   const msg = event.data;
-  if (msg.type === "GRPC_DATA") {
-    // inject.js 已经发送了 ArrayBuffer，直接转发给 background.js
-    // console.log("content.js 收到 GRPC_DATA 消息:", msg);
+  if (msg.type === ET_GRPC_RESPONSE) {
+    // console.log("content.js 收到 ET_GRPC_RESPONSE 消息:", msg);
     port.postMessage({
       ...msg,
-      type: "GRPC_DATA",
+      type: ET_GRPC_RESPONSE,
       buffer: new Uint8Array(msg.buffer),
     });
   }

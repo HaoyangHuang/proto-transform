@@ -1,0 +1,7 @@
+// event type
+export const ET_GRPC_RESPONSE = "ET_GRPC_RESPONSE";
+export const ET_GRPC_TRANSFORMED = "ET_GRPC_TRANSFORMED";
+
+export const SESSION_STORAGE_KEY = "GRPC_TRANSFORMED_STORAGE";
+
+export const MAX_STORAGE_NUMBER_LIMIT = 20;

@@ -1,142 +1,124 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react'
-import './App.css'
-import {Drawer, Button, Tree} from 'antd' // Added Tree import
-import Draggable from 'react-draggable';
-import { MenuOutlined } from '@ant-design/icons';
+import { useState, useEffect, useRef, type ReactNode } from "react";
+import "./App.css";
+import { Drawer, Button, Tree } from "antd"; // Added Tree import
+import Draggable from "react-draggable";
+import { MenuOutlined } from "@ant-design/icons";
+import { v4 as uuidv4 } from "uuid";
+import { useMemoizedFn } from "ahooks";
+import { SESSION_STORAGE_KEY } from "../../crx/lib/const.js";
+
+const MAX_TREE_DEPTH = 3;
 
 function App() {
   const [open, setOpen] = useState(false);
-  const [grpcData, setGrpcData] = useState({});
+  const [grpcData, setGrpcData] = useState<Record<string, any>>({});
+  const [treeData, setTreeData] = useState<any[]>([]);
   const nodeRef = useRef(null);
 
-  const SESSION_KEY = "GRPC_WEB_TRANSFORMED";
-
-  const loadGrpcData = () => {
+  const loadGrpcData = useMemoizedFn(() => {
     try {
-      const data = sessionStorage.getItem(SESSION_KEY);
+      const data = sessionStorage.getItem(SESSION_STORAGE_KEY);
       if (data) {
-        setGrpcData(JSON.parse(data));
+        const obj = JSON.parse(data);
+        setGrpcData(obj);
+        if (Object.keys(obj).length > 0) {
+          setTreeData(buildTreeData(obj));
+        }
       }
     } catch (e) {
       console.error("Failed to parse grpc data from sessionStorage", e);
     }
-  };
+  });
 
   useEffect(() => {
     loadGrpcData();
 
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === SESSION_KEY) {
-        loadGrpcData();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener(SESSION_STORAGE_KEY, loadGrpcData);
 
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener(SESSION_STORAGE_KEY, loadGrpcData);
     };
   }, []);
 
-  const buildTreeData = (data: any, parentKey: string = '', isLazyLoad: boolean = false): any[] => {
-    if (typeof data !== 'object' || data === null) {
-      return [{ key: parentKey, title: String(data), isLeaf: true }];
+  const buildTreeData = (data: Record<string, any>, idx = 1): any[] => {
+    const unikey = uuidv4();
+    if (
+      typeof data !== "object" ||
+      data === null ||
+      Object.keys(data).length === 0
+    ) {
+      return [{ title: JSON.stringify(data), key: unikey, isLeaf: true }];
     }
 
-    if (isLazyLoad && Object.keys(data).length > 0) {
-      return [{
-        key: parentKey,
-        title: `${parentKey.split('-').pop()}: ${Array.isArray(data) ? '[...]' : '{...}'}`,
-        children: [],
-        isLeaf: false,
-      }];
-    }
+    return Object.entries(data).map(([key, value], index) => {
+      const childUnikey = uuidv4();
+      const valueStr = JSON.stringify(value);
+      const isObjectOrArray = typeof value === "object" && value !== null;
 
-    return Object.entries(data).map(([key, value]) => {
-      const currentKey = parentKey ? `${parentKey}-${key}` : key;
-      if (typeof value === 'object' && value !== null) {
-        return {
-          key: currentKey,
-          title: `${key}: ${Array.isArray(value) ? '[...]' : '{...}'}`,
-          children: buildTreeData(value, currentKey, true),
-          isLeaf: false,
-        };
+      let title = "";
+      if (idx === 1) {
+        title = `(${index + 1}) ${value.url}`;
+      } else if (idx > MAX_TREE_DEPTH) {
+        title = `${key}: ${valueStr}`;
       } else {
-        return {
-          key: currentKey,
-          title: `${key}: ${String(value)}`,
-          isLeaf: true,
-        };
+        title = `${key}: ${isObjectOrArray ? "" : valueStr}`;
       }
+
+      return {
+        title,
+        key: childUnikey,
+        isLeaf: idx > MAX_TREE_DEPTH || !isObjectOrArray,
+        children: isObjectOrArray ? buildTreeData(value, idx + 1) : undefined,
+      };
     });
   };
 
-  const findNodeData = (keys: string[], data: any): any => {
-    let current = data;
-    for (let i = 0; i < keys.length; i++) {
-      if (Array.isArray(current)) {
-        const index = parseInt(keys[i]);
-        if (!isNaN(index) && index < current.length) {
-          current = current[index];
-        } else {
-          return undefined;
-        }
-      } else if (typeof current === 'object' && current !== null) {
-        current = current[keys[i]];
-      } else {
-        return undefined;
+  const updateTreeData = (
+    list: any[],
+    key: React.Key,
+    children: any[],
+    idx = 1
+  ): any[] => {
+    return list.map((node) => {
+      if (node.key === key) {
+        return {
+          ...node,
+          children,
+        };
       }
-    }
-    return current;
+      if (node.children) {
+        return {
+          ...node,
+          children: updateTreeData(node.children, key, children, idx + 1),
+        };
+      }
+      return node;
+    });
   };
 
-  const onLoadData = ({ key }: any) =>
-    new Promise<void>(resolve => {
-      // Removed the early return condition: if (children && children.length > 0) { resolve(); return; }
-
-      const keys = key.split('-');
-      const nodeData = findNodeData(keys, grpcData);
-
-      if (nodeData) {
-        const newChildren = buildTreeData(nodeData, key, false);
-        setTreeData(prevTreeData => {
-          const updateTree = (tree: any[]): any[] => {
-            return tree.map(node => {
-              if (node.key === key) {
-                return { ...node, children: newChildren };
-              }
-              if (node.children) {
-                return { ...node, children: updateTree(node.children) };
-              }
-              return node;
-            });
-          };
-          return updateTree(prevTreeData);
-        });
+  const onLoadData = ({ key, children, rawData }: any) =>
+    new Promise<void>((resolve) => {
+      if (children) {
+        resolve();
+        return;
       }
+      setTreeData((origin) =>
+        updateTreeData(origin, key, buildTreeData(rawData))
+      );
       resolve();
     });
-
-  const [treeData, setTreeData] = useState<any[]>([]);
-
-  useEffect(() => {
-    if (Object.keys(grpcData).length > 0) {
-      setTreeData(buildTreeData(grpcData));
-    }
-  }, [grpcData]);
 
   const renderContent = (): ReactNode => {
     return (
       <div>
         <h3>gRPC-Web Transformed Data:</h3>
         {Object.keys(grpcData).length > 0 ? (
-          <Tree
-            showLine={true}
-            treeData={treeData}
-            loadData={onLoadData}
-          />
+          <Tree showLine={true} treeData={treeData} loadData={onLoadData} />
         ) : (
-          <p>No gRPC data available. Please ensure the extension is active and data is being transformed.</p>
+          <p>
+            No gRPC data available. Please ensure the extension is active and
+            data is being transformed.
+          </p>
         )}
       </div>
     );
@@ -144,21 +126,27 @@ function App() {
 
   return (
     <>
-      <Draggable nodeRef={nodeRef} defaultPosition={{x: 0, y: 100}}>
+      <Draggable nodeRef={nodeRef} defaultPosition={{ x: 0, y: 100 }}>
         <div ref={nodeRef} className="draggable-button-container">
-          <Button type="primary" shape="circle" icon={<MenuOutlined />} size="large" onClick={() => setOpen(true)} />
+          <Button
+            type="primary"
+            shape="circle"
+            icon={<MenuOutlined />}
+            size="large"
+            onClick={() => setOpen(true)}
+          />
         </div>
       </Draggable>
-      <Drawer 
-      width={1200}
-      title="gRPC-Web Data Viewer"
-      open={open}
-      onClose={() => setOpen(false)}
+      <Drawer
+        width={1200}
+        title="gRPC-Web Data Viewer"
+        open={open}
+        onClose={() => setOpen(false)}
       >
         {renderContent()}
-        </Drawer>
-     </>
-  )
+      </Drawer>
+    </>
+  );
 }
 
-export default App
+export default App;
