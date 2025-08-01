@@ -20,31 +20,32 @@ const setStorage = (key, value) => {
   }
 };
 
-const addItem = (key, item) => {
+const addItem = (item) => {
   try {
-    const prev = sessionStorage.getItem(SESSION_STORAGE_KEY) || "{}";
-    let prevObj = JSON.parse(prev);
-    if (Reflect.ownKeys(prevObj).length >= MAX_STORAGE_NUMBER_LIMIT) {
-      prevObj = {};
+    const prev = sessionStorage.getItem(SESSION_STORAGE_KEY) || "[]";
+    let prevArray = JSON.parse(prev);
+    if (prevArray.length >= MAX_STORAGE_NUMBER_LIMIT) {
+      prevArray.pop();
     }
-    prevObj[key] = item;
-    setStorage(SESSION_STORAGE_KEY, prevObj);
-    // console.log("addItem prevObj>>>> ", prevObj);
+    prevArray.unshift(item);
+    setStorage(SESSION_STORAGE_KEY, prevArray);
+    // console.log("addItem prevArray>>>> ", prevArray);
   } catch (e) {
     console.log("setItem error", e);
   }
 };
 const setItem = (key, item) => {
   try {
-    const prev = sessionStorage.getItem(SESSION_STORAGE_KEY);
-    if (prev) {
-      const prevObj = JSON.parse(prev);
-      if (prevObj[key]) {
-        prevObj[key] = { ...prevObj[key], ...item };
-      }
-      // console.log("setItem prevObj>>>> ", prevObj);
-      setStorage(SESSION_STORAGE_KEY, prevObj);
+    const prev = sessionStorage.getItem(SESSION_STORAGE_KEY) || "[]";
+    const prevArray = JSON.parse(prev);
+    const idx = prevArray.findIndex((item) => item.key === key);
+    if (idx > -1) {
+      prevArray[idx] = { ...prevArray[idx], ...item };
+    } else {
+      prevArray.unshift(item);
     }
+    // console.log("setItem prevArray>>>> ", prevArray);
+    setStorage(SESSION_STORAGE_KEY, prevArray);
   } catch (e) {
     console.log("setItem error", e);
   }
@@ -88,7 +89,7 @@ class HookedXHR extends OriginalXHR {
             url: this._url,
             time: new Date(),
           };
-          addItem(this._key, newItem);
+          addItem(newItem);
 
           // 是 grpc-web POST 请求，处理响应体
           const responseData =

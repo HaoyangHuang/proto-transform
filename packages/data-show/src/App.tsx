@@ -6,24 +6,30 @@ import { MenuOutlined } from "@ant-design/icons";
 import { v4 as uuidv4 } from "uuid";
 import { useMemoizedFn } from "ahooks";
 import { SESSION_STORAGE_KEY } from "../../crx/lib/const.js";
+import dayjs from "dayjs";
 
-const MAX_TREE_DEPTH = 3;
+const MAX_TREE_DEPTH = 2;
 
 function App() {
   const [open, setOpen] = useState(false);
-  const [grpcData, setGrpcData] = useState<Record<string, any>>({});
   const [treeData, setTreeData] = useState<any[]>([]);
   const nodeRef = useRef(null);
 
   const loadGrpcData = useMemoizedFn(() => {
     try {
-      const data = sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (data) {
-        const obj = JSON.parse(data);
-        setGrpcData(obj);
-        if (Object.keys(obj).length > 0) {
-          setTreeData(buildTreeData(obj));
-        }
+      const data = sessionStorage.getItem(SESSION_STORAGE_KEY) || "[]";
+      const transformedArray = JSON.parse(data);
+      if (transformedArray.length > 0) {
+        setTreeData(
+          transformedArray.map((item, idx) => {
+            return {
+              title: `[${idx + 1}] (${dayjs(item.time).format("YYYY-MM-DD HH:mm:ss")}) ${item.url}`,
+              key: item.key,
+              isLeaf: false,
+              children: buildTreeData(item.transformedData),
+            };
+          })
+        );
       }
     } catch (e) {
       console.error("Failed to parse grpc data from sessionStorage", e);
@@ -50,15 +56,16 @@ function App() {
       return [{ title: JSON.stringify(data), key: unikey, isLeaf: true }];
     }
 
-    return Object.entries(data).map(([key, value], index) => {
+    return Object.entries(data).map(([key, value]) => {
       const childUnikey = uuidv4();
       const valueStr = JSON.stringify(value);
-      const isObjectOrArray = typeof value === "object" && value !== null;
+      const isObjectOrArray =
+        typeof value === "object" &&
+        value !== null &&
+        Object.keys(value).length > 0;
 
       let title = "";
-      if (idx === 1) {
-        title = `(${index + 1}) ${value.url}`;
-      } else if (idx > MAX_TREE_DEPTH) {
+      if (idx > MAX_TREE_DEPTH) {
         title = `${key}: ${valueStr}`;
       } else {
         title = `${key}: ${isObjectOrArray ? "" : valueStr}`;
@@ -76,8 +83,7 @@ function App() {
   const updateTreeData = (
     list: any[],
     key: React.Key,
-    children: any[],
-    idx = 1
+    children: any[]
   ): any[] => {
     return list.map((node) => {
       if (node.key === key) {
@@ -89,7 +95,7 @@ function App() {
       if (node.children) {
         return {
           ...node,
-          children: updateTreeData(node.children, key, children, idx + 1),
+          children: updateTreeData(node.children, key, children),
         };
       }
       return node;
@@ -112,7 +118,7 @@ function App() {
     return (
       <div>
         <h3>gRPC-Web Transformed Data:</h3>
-        {Object.keys(grpcData).length > 0 ? (
+        {treeData.length > 0 ? (
           <Tree showLine={true} treeData={treeData} loadData={onLoadData} />
         ) : (
           <p>
